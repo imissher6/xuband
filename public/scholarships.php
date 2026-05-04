@@ -6,212 +6,253 @@ require_once __DIR__ . '/../includes/layout.php';
 requireLogin();
 $user = currentUser();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isOfficer()) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isOfficer()) { http_response_code(403); exit; }
     $action = $_POST['action'] ?? '';
 
-    if ($action === 'upsert') {
-        $uid         = (int)($_POST['user_id'] ?? 0);
-        $semester    = trim($_POST['semester'] ?? '');
-        $acad_year   = trim($_POST['academic_year'] ?? '');
-        $gpa         = $_POST['gpa'] !== '' ? (float)$_POST['gpa'] : null;
-        $band_score  = $_POST['band_participation_score'] !== '' ? (int)$_POST['band_participation_score'] : null;
-        $status      = $_POST['status'] ?? 'inactive';
-        $allowance   = $_POST['monthly_allowance'] !== '' ? (float)$_POST['monthly_allowance'] : null;
-        $notes       = trim($_POST['notes'] ?? '');
-        $existing_id = (int)($_POST['scholarship_id'] ?? 0);
-
-        if ($existing_id) {
-            dbExecute('UPDATE scholarships SET semester=?,academic_year=?,gpa=?,band_participation_score=?,status=?,monthly_allowance=?,notes=?,updated_by=?,updated_at=NOW() WHERE id=?',
-                [$semester,$acad_year,$gpa,$band_score,$status,$allowance,$notes,$user['id'],$existing_id]);
-        } else {
-            dbInsert('INSERT INTO scholarships (user_id,semester,academic_year,gpa,band_participation_score,status,monthly_allowance,notes,updated_by) VALUES (?,?,?,?,?,?,?,?,?)',
-                [$uid,$semester,$acad_year,$gpa,$band_score,$status,$allowance,$notes,$user['id']]);
+    if ($action === 'create_school_year') {
+        $label = trim($_POST['label'] ?? '');
+        if (!$label) { flash('error', 'School year label required.'); redirect('/scholarships.php'); }
+        $exists = dbQueryOne('SELECT id FROM school_years WHERE label = ?', [$label]);
+        if ($exists) { flash('error', 'School year already exists.'); redirect('/scholarships.php'); }
+        $sy_id = dbInsert('INSERT INTO school_years (label, created_by) VALUES (?,?)', [$label, $user['id']]);
+        foreach (['1st Semester','2nd Semester','Summer'] as $term) {
+            dbInsert('INSERT INTO scholarship_terms (school_year_id, term) VALUES (?,?)', [$sy_id, $term]);
         }
-        flash('success', 'Scholarship record saved.');
+        flash('success', "School year $label created with 3 terms.");
         redirect('/scholarships.php');
     }
 
-    if ($action === 'delete') {
+    if ($action === 'delete_school_year') {
         $id = (int)($_POST['id'] ?? 0);
-        dbExecute('DELETE FROM scholarships WHERE id = ?', [$id]);
-        flash('success', 'Record deleted.');
+        dbExecute('DELETE FROM school_years WHERE id = ?', [$id]);
+        flash('success', 'School year deleted.');
+        redirect('/scholarships.php');
+    }
+
+    if ($action === 'update_status') {
+        $scholarship_id = (int)($_POST['scholarship_id'] ?? 0);
+        $term_id        = (int)($_POST['term_id'] ?? 0);
+        $uid            = (int)($_POST['user_id'] ?? 0);
+        $status         = $_POST['status'] ?? 'Not Scholar';
+        $allowed = ['Full Scholar','Half Scholar','Not Scholar'];
+        if (!in_array($status, $allowed)) { flash('error', 'Invalid status.'); redirect('/scholarships.php'); }
+
+        if ($scholarship_id) {
+            dbExecute('UPDATE scholarships SET status=?,updated_by=?,updated_at=NOW() WHERE id=?',
+                [$status, $user['id'], $scholarship_id]);
+        } else {
+            dbExecute('INSERT INTO scholarships (term_id,user_id,status,updated_by) VALUES (?,?,?,?)
+                       ON DUPLICATE KEY UPDATE status=VALUES(status),updated_by=VALUES(updated_by),updated_at=NOW()',
+                [$term_id, $uid, $status, $user['id']]);
+        }
+        flash('success', 'Scholarship status updated.');
         redirect('/scholarships.php');
     }
 }
 
-// View: moderator/officer sees all; member sees own
-if (isOfficer()) {
-    $records = dbQuery('SELECT s.*, u.name AS member_name, u.instrument, u.year_level,
-        ub.name AS updated_by_name
-        FROM scholarships s
-        JOIN users u ON u.id = s.user_id
-        LEFT JOIN users ub ON ub.id = s.updated_by
-        ORDER BY s.updated_at DESC');
-    $members = dbQuery('SELECT id, name FROM users WHERE role = "member" AND status = "active" ORDER BY name');
-} else {
-    $records = dbQuery('SELECT s.*, u.name AS member_name, u.instrument, u.year_level,
-        ub.name AS updated_by_name
-        FROM scholarships s
-        JOIN users u ON u.id = s.user_id
-        LEFT JOIN users ub ON ub.id = s.updated_by
-        WHERE s.user_id = ?
-        ORDER BY s.updated_at DESC', [$user['id']]);
-    $members = [];
+$schoolYears = dbQuery('SELECT sy.*, u.name AS creator FROM school_years sy JOIN users u ON u.id=sy.created_by ORDER BY sy.label DESC');
+
+$yearsData = [];
+foreach ($schoolYears as $sy) {
+    $terms = dbQuery('SELECT * FROM scholarship_terms WHERE school_year_id=? ORDER BY FIELD(term,"1st Semester","2nd Semester","Summer")', [$sy['id']]);
+    $termsData = [];
+    foreach ($terms as $t) {
+        if (isOfficer()) {
+            $records = dbQuery(
+                'SELECT u.id AS user_id, u.name, u.instrument, u.year_level,
+                    COALESCE(s.id,0) AS scholarship_id,
+                    COALESCE(s.status,"Not Scholar") AS status,
+                    ub.name AS updated_by_name, s.updated_at
+                 FROM users u
+                 LEFT JOIN scholarships s ON s.user_id=u.id AND s.term_id=?
+                 LEFT JOIN users ub ON ub.id=s.updated_by
+                 WHERE u.role="member" AND u.status="active"
+                 ORDER BY u.name',
+                [$t['id']]
+            );
+        } else {
+            $records = dbQuery(
+                'SELECT u.id AS user_id, u.name,
+                    COALESCE(s.id,0) AS scholarship_id,
+                    COALESCE(s.status,"Not Scholar") AS status
+                 FROM users u
+                 LEFT JOIN scholarships s ON s.user_id=u.id AND s.term_id=?
+                 WHERE u.id=?',
+                [$t['id'], $user['id']]
+            );
+        }
+        $termsData[] = ['term' => $t, 'records' => $records];
+    }
+    $yearsData[] = ['sy' => $sy, 'terms' => $termsData];
 }
 
 layout_head('Scholarships', 'scholarships');
 ?>
 
-<?php if ($e = getFlash('error')): ?><div class="alert alert-error" data-auto-dismiss>⚠️ <?= h($e) ?></div><?php endif; ?>
-<?php if ($s = getFlash('success')): ?><div class="alert alert-success" data-auto-dismiss>✅ <?= h($s) ?></div><?php endif; ?>
-
-<?php if (!isOfficer()): ?>
-<div class="alert alert-info">
-  ℹ️ Showing your scholarship records. Contact an officer to update your status.
+<?php if ($e = getFlash('error')): ?>
+<div class="alert alert-danger d-flex align-items-center gap-2" data-auto-dismiss>
+  <i class="bi bi-exclamation-triangle-fill"></i> <?= h($e) ?>
+</div>
+<?php endif; ?>
+<?php if ($s = getFlash('success')): ?>
+<div class="alert alert-success d-flex align-items-center gap-2" data-auto-dismiss>
+  <i class="bi bi-check-circle-fill"></i> <?= h($s) ?>
 </div>
 <?php endif; ?>
 
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">🎓 Scholarship Monitoring</span>
-    <?php if (isOfficer()): ?>
-    <button class="btn btn-primary btn-sm" data-modal="modalScholarship" onclick="resetScholarshipForm()">+ Add Record</button>
-    <?php endif; ?>
-  </div>
-
-  <?php if (!$records): ?>
-  <div class="empty-state"><div class="empty-icon">🎓</div><p>No scholarship records.</p></div>
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <h2 class="mb-0" style="color:var(--navy)"><i class="bi bi-award me-2"></i>Scholarship Records</h2>
+  <?php if (isOfficer()): ?>
+  <button class="btn btn-primary btn-sm" data-modal="modalSY">
+    <i class="bi bi-plus-lg me-1"></i> Create School Year
+  </button>
   <?php else: ?>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Member</th><th>Semester</th><th>Year</th>
-          <th>GPA</th><th>Band Score</th><th>Status</th>
-          <th>Allowance</th><th>Updated By</th><th>Date</th>
-          <?php if (isOfficer()): ?><th>Actions</th><?php endif; ?>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($records as $r): ?>
-        <tr>
-          <td><strong><?= h($r['member_name']) ?></strong>
-            <?php if ($r['instrument']): ?><br><span class="text-xs text-muted"><?= h($r['instrument']) ?></span><?php endif; ?></td>
-          <td><?= h($r['semester']) ?></td>
-          <td><?= h($r['academic_year']) ?></td>
-          <td><?= $r['gpa'] !== null ? number_format($r['gpa'],2) : '—' ?></td>
-          <td><?= $r['band_participation_score'] !== null ? $r['band_participation_score'].'/100' : '—' ?></td>
-          <td><?= statusBadge($r['status']) ?></td>
-          <td><?= $r['monthly_allowance'] ? '₱'.number_format($r['monthly_allowance'],2) : '—' ?></td>
-          <td class="text-sm text-muted"><?= h($r['updated_by_name'] ?? '—') ?></td>
-          <td class="text-sm text-muted"><?= formatDate($r['updated_at']) ?></td>
-          <?php if (isOfficer()): ?>
-          <td>
-            <button class="btn btn-xs btn-outline" data-modal="modalScholarship"
-              onclick="fillScholarship(<?= htmlspecialchars(json_encode($r), ENT_QUOTES) ?>)">Edit</button>
-            <form method="POST" style="display:inline">
-              <input type="hidden" name="action" value="delete">
-              <input type="hidden" name="id" value="<?= $r['id'] ?>">
-              <button class="btn btn-xs btn-danger" data-confirm="Delete this record?">Del</button>
-            </form>
-          </td>
-          <?php endif; ?>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+  <div class="alert alert-info mb-0 py-2 px-3 small d-flex align-items-center gap-2">
+    <i class="bi bi-info-circle-fill"></i> Showing your scholarship status only.
   </div>
   <?php endif; ?>
 </div>
 
+<?php if (!$yearsData): ?>
+<div class="card">
+  <div class="empty-state p-5">
+    <div class="empty-icon"><i class="bi bi-award"></i></div>
+    <p><?= isOfficer() ? 'No school years yet. Create one above.' : 'No scholarship records yet.' ?></p>
+  </div>
+</div>
+<?php endif; ?>
+
+<!-- Bootstrap Accordion -->
+<div class="accordion" id="scholarshipAccordion">
+<?php foreach ($yearsData as $yi => $yd): $sy = $yd['sy']; $syId = 'sy-' . $sy['id']; ?>
+
+<div class="accordion-item mb-3 border rounded shadow-sm">
+  <h2 class="accordion-header">
+    <button class="accordion-button collapsed fw-bold" type="button"
+            data-bs-toggle="collapse" data-bs-target="#collapse-<?= $syId ?>"
+            aria-expanded="false" aria-controls="collapse-<?= $syId ?>">
+      <i class="bi bi-calendar-range me-2"></i>
+      <?= h($sy['label']) ?>
+      <span class="ms-2 text-muted fw-normal small">3 terms</span>
+    </button>
+  </h2>
+  <div id="collapse-<?= $syId ?>" class="accordion-collapse collapse">
+    <div class="accordion-body p-0">
+
+      <?php if (isOfficer()): ?>
+      <div class="px-3 py-2 border-bottom d-flex justify-content-end">
+        <form method="POST" style="display:inline">
+          <input type="hidden" name="action" value="delete_school_year">
+          <input type="hidden" name="id" value="<?= $sy['id'] ?>">
+          <button class="btn btn-xs btn-danger" data-confirm="Delete school year <?= h($sy['label']) ?>?">
+            <i class="bi bi-trash me-1"></i>Delete Year
+          </button>
+        </form>
+      </div>
+      <?php endif; ?>
+
+      <!-- Nested accordion for terms -->
+      <div class="accordion accordion-flush" id="termAccordion-<?= $sy['id'] ?>">
+        <?php foreach ($yd['terms'] as $tdi => $td): $t = $td['term']; $records = $td['records']; $termId = 'term-' . $t['id']; ?>
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed py-2 fw-semibold" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapse-<?= $termId ?>"
+                    aria-expanded="false" aria-controls="collapse-<?= $termId ?>"
+                    style="background:var(--bg);color:var(--navy);font-size:.9rem">
+              <i class="bi bi-calendar-check me-2"></i>
+              <?= h($t['term']) ?>
+              <span class="ms-2 text-muted fw-normal small">(<?= count($records) ?> member<?= count($records)!=1?'s':'' ?>)</span>
+            </button>
+          </h2>
+          <div id="collapse-<?= $termId ?>" class="accordion-collapse collapse">
+            <div class="accordion-body p-0">
+              <?php if (!$records): ?>
+              <div class="empty-state p-3"><p>No members found.</p></div>
+              <?php else: ?>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Member</th>
+                      <?php if (isOfficer()): ?><th>Instrument</th><th>Year</th><?php endif; ?>
+                      <th>Scholarship Status</th>
+                      <?php if (isOfficer()): ?><th>Updated By</th><th>Action</th><?php endif; ?>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($records as $r): ?>
+                    <tr>
+                      <td><strong><?= h($r['name']) ?></strong></td>
+                      <?php if (isOfficer()): ?>
+                      <td><?= h($r['instrument']??'—') ?></td>
+                      <td class="small text-muted"><?= h($r['year_level']??'—') ?></td>
+                      <?php endif; ?>
+                      <td><?= scholarshipBadge($r['status']) ?></td>
+                      <?php if (isOfficer()): ?>
+                      <td class="small text-muted"><?= h($r['updated_by_name']??'—') ?></td>
+                      <td>
+                        <form method="POST" class="d-flex gap-2 align-items-center">
+                          <input type="hidden" name="action" value="update_status">
+                          <input type="hidden" name="scholarship_id" value="<?= $r['scholarship_id'] ?>">
+                          <input type="hidden" name="term_id" value="<?= $t['id'] ?>">
+                          <input type="hidden" name="user_id" value="<?= $r['user_id'] ?>">
+                          <select name="status" class="form-control" style="width:140px">
+                            <option value="Full Scholar"  <?= $r['status']==='Full Scholar' ?'selected':'' ?>>Full Scholar</option>
+                            <option value="Half Scholar"  <?= $r['status']==='Half Scholar' ?'selected':'' ?>>Half Scholar</option>
+                            <option value="Not Scholar"   <?= $r['status']==='Not Scholar'  ?'selected':'' ?>>Not Scholar</option>
+                          </select>
+                          <button type="submit" class="btn btn-xs btn-primary">
+                            <i class="bi bi-floppy"></i> Save
+                          </button>
+                        </form>
+                      </td>
+                      <?php endif; ?>
+                    </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<?php endforeach; ?>
+</div>
+
 <?php if (isOfficer()): ?>
-<!-- Add/Edit Scholarship Modal -->
-<div class="modal-overlay" id="modalScholarship">
+<div class="modal-overlay" id="modalSY">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title" id="scholarshipModalTitle">Add Scholarship Record</span>
-      <button class="modal-close" data-modal-close>✕</button>
+      <span class="modal-title">Create School Year</span>
+      <button class="modal-close" data-modal-close><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST">
-      <input type="hidden" name="action" value="upsert">
-      <input type="hidden" name="scholarship_id" id="sch_id" value="">
+      <input type="hidden" name="action" value="create_school_year">
       <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">Member *</label>
-          <select id="sch_user_id" name="user_id" class="form-control" required>
-            <option value="">Select member…</option>
-            <?php foreach ($members as $m): ?>
-            <option value="<?= $m['id'] ?>"><?= h($m['name']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div class="form-row form-row-2">
-          <div class="form-group"><label class="form-label">Semester *</label>
-            <select id="sch_semester" name="semester" class="form-control">
-              <option>1st Semester</option><option>2nd Semester</option><option>Summer</option>
-            </select>
-          </div>
-          <div class="form-group"><label class="form-label">Academic Year *</label>
-            <input id="sch_academic_year" name="academic_year" class="form-control" placeholder="e.g. 2024-2025" required>
-          </div>
-        </div>
-        <div class="form-row form-row-2">
-          <div class="form-group"><label class="form-label">GPA</label>
-            <input id="sch_gpa" name="gpa" type="number" step=".01" min="1" max="5" class="form-control" placeholder="1.00 – 5.00">
-          </div>
-          <div class="form-group"><label class="form-label">Band Participation Score (0-100)</label>
-            <input id="sch_band" name="band_participation_score" type="number" min="0" max="100" class="form-control">
-          </div>
-        </div>
-        <div class="form-row form-row-2">
-          <div class="form-group"><label class="form-label">Status</label>
-            <select id="sch_status" name="status" class="form-control">
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="probation">Probation</option>
-              <option value="terminated">Terminated</option>
-            </select>
-          </div>
-          <div class="form-group"><label class="form-label">Monthly Allowance (₱)</label>
-            <input id="sch_allowance" name="monthly_allowance" type="number" step=".01" min="0" class="form-control">
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Notes</label>
-          <textarea id="sch_notes" name="notes" class="form-control"></textarea>
+        <div class="mb-3">
+          <label class="form-label">School Year Label *</label>
+          <input name="label" class="form-control" placeholder="e.g. 2024-2025" required>
+          <div class="form-text text-muted">Auto-creates 1st Semester, 2nd Semester, and Summer terms.</div>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Record</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-plus-lg me-1"></i>Create
+        </button>
       </div>
     </form>
   </div>
 </div>
-
-<script>
-function resetScholarshipForm() {
-  document.getElementById('sch_id').value = '';
-  document.getElementById('scholarshipModalTitle').textContent = 'Add Scholarship Record';
-  ['user_id','semester','academic_year','gpa','band','status','allowance','notes'].forEach(k => {
-    const el = document.getElementById('sch_' + k);
-    if (el) el.value = '';
-  });
-  const sel = document.getElementById('sch_status');
-  if (sel) sel.value = 'active';
-}
-function fillScholarship(r) {
-  document.getElementById('scholarshipModalTitle').textContent = 'Edit Scholarship Record';
-  document.getElementById('sch_id').value            = r.id;
-  document.getElementById('sch_user_id').value       = r.user_id;
-  document.getElementById('sch_semester').value      = r.semester;
-  document.getElementById('sch_academic_year').value = r.academic_year;
-  document.getElementById('sch_gpa').value           = r.gpa || '';
-  document.getElementById('sch_band').value          = r.band_participation_score || '';
-  document.getElementById('sch_status').value        = r.status;
-  document.getElementById('sch_allowance').value     = r.monthly_allowance || '';
-  document.getElementById('sch_notes').value         = r.notes || '';
-}
-</script>
 <?php endif; ?>
 
 <?php layout_foot(); ?>

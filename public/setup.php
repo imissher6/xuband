@@ -34,14 +34,14 @@ foreach ($statements as $stmt) {
     try {
         $pdo->exec($stmt);
         $preview = mb_substr($stmt, 0, 60);
-        $log[] = "<span style='color:green'>✅ OK:</span> " . htmlspecialchars($preview) . '…';
+        $log[] = "<span style='color:green'>OK:</span> " . htmlspecialchars($preview) . '…';
     } catch (PDOException $e) {
         // Ignore duplicate entry errors (seeding)
         if (str_contains($e->getMessage(), 'Duplicate entry')) {
             $log[] = "<span style='color:orange'>⏭ Skip (duplicate):</span> " . htmlspecialchars(mb_substr($stmt,0,60));
         } else {
             $errors[] = $e->getMessage();
-            $log[] = "<span style='color:red'>❌ Error:</span> " . htmlspecialchars($e->getMessage());
+            $log[] = "<span style='color:red'>Error:</span> " . htmlspecialchars($e->getMessage());
         }
     }
 }
@@ -56,11 +56,11 @@ h1{color:#283971}
 .error  {background:#fee2e2;border:1px solid #fca5a5;padding:12px 16px;border-radius:6px;margin:16px 0}
 </style></head>
 <body>
-<h1>🎵 XUBand Database Setup</h1>
+<h1>XUBand XUBand Database Setup</h1>
 <?php if (empty($errors)): ?>
-<div class="success">✅ Setup completed successfully! Database is ready.</div>
+<div class="success">Setup completed successfully! Database is ready.</div>
 <?php else: ?>
-<div class="error">⚠️ Setup completed with <?= count($errors) ?> error(s). Check log below.</div>
+<div class="error">Setup completed with <?= count($errors) ?> error(s). Check log below.</div>
 <?php endif; ?>
 
 <pre><?= implode("\n", $log) ?></pre>
@@ -71,7 +71,7 @@ h1{color:#283971}
   • Moderator: moderator@xuband.edu.ph<br>
   • Officer: gabutin@xuband.edu.ph<br>
   • All passwords: <code>password</code><br><br>
-  <strong>⚠️ DELETE this setup.php file after setup!</strong><br>
+  <strong>DELETE this setup.php file after setup!</strong><br>
   <a href="/login.php">→ Go to Login</a>
 </div>
 <?php endif; ?>

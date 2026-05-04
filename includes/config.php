@@ -22,7 +22,6 @@ define('ALLOWED_TYPES', ['application/pdf', 'image/jpeg', 'image/png', 'image/gi
 define('ALLOWED_EXTENSIONS', ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'mp3']);
 
 // Penalty points
-define('PENALTY_ABSENT',  3.0);
-define('PENALTY_LATE',    1.0);
-define('PENALTY_EXCUSED', 0.0);
-define('PENALTY_PRESENT', 0.0);
+define('PENALTY_ABSENT',  150);
+define('PENALTY_LATE',    75);
+define('PENALTY_PRESENT', 0);

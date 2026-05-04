@@ -1,79 +1,27 @@
-/* XUBand — Main JS */
+/* XUBand — main.js */
 
-// ── Mobile Sidebar ──
-const sidebar = document.getElementById('sidebar');
-const hamburger = document.getElementById('hamburger');
-const sidebarOverlay = document.getElementById('sidebarOverlay');
+// ── Sidebar toggle (mobile) ──
+const sidebar  = document.getElementById('sidebar');
+const backdrop = document.getElementById('sidebarBackdrop');
+const toggler  = document.getElementById('sidebarToggler');
 
-if (hamburger) {
-  hamburger.addEventListener('click', () => {
-    sidebar?.classList.toggle('open');
-  });
-}
-if (sidebarOverlay) {
-  sidebarOverlay.addEventListener('click', () => {
-    sidebar?.classList.remove('open');
-  });
-}
+function openSidebar()  { sidebar?.classList.add('show');    backdrop?.classList.add('show');    document.body.style.overflow='hidden'; }
+function closeSidebar() { sidebar?.classList.remove('show'); backdrop?.classList.remove('show'); document.body.style.overflow='';       }
 
-// ── Modals ──
-document.querySelectorAll('[data-modal]').forEach(trigger => {
-  trigger.addEventListener('click', () => {
-    const modalId = trigger.dataset.modal;
-    openModal(modalId);
-  });
-});
-
-document.querySelectorAll('.modal-close, [data-modal-close]').forEach(el => {
-  el.addEventListener('click', () => closeModal(el.closest('.modal-overlay')?.id));
-});
-
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeModal(overlay.id);
-  });
-});
-
-function openModal(id) {
-  const el = document.getElementById(id);
-  if (el) { el.classList.add('open'); document.body.style.overflow = 'hidden'; }
-}
-function closeModal(id) {
-  const el = document.getElementById(id);
-  if (el) { el.classList.remove('open'); document.body.style.overflow = ''; }
-}
-
-// ── Tabs ──
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const target = btn.dataset.tab;
-    const container = btn.closest('[data-tabs]');
-    if (!container) return;
-    container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    container.querySelector('#tab-' + target)?.classList.add('active');
-  });
-});
+toggler?.addEventListener('click', openSidebar);
+backdrop?.addEventListener('click', closeSidebar);
 
 // ── Auto-dismiss alerts ──
-document.querySelectorAll('.alert[data-auto-dismiss]').forEach(alert => {
-  setTimeout(() => {
-    alert.style.transition = 'opacity .4s';
-    alert.style.opacity = '0';
-    setTimeout(() => alert.remove(), 400);
-  }, 4000);
+document.querySelectorAll('[data-auto-dismiss]').forEach(el => {
+  setTimeout(() => { el.classList.add('fade'); setTimeout(() => el.remove(), 300); }, 4000);
 });
 
-// ── Confirm delete ──
+// ── Confirm on data-confirm ──
 document.querySelectorAll('[data-confirm]').forEach(el => {
-  el.addEventListener('click', (e) => {
-    const msg = el.dataset.confirm || 'Are you sure?';
-    if (!confirm(msg)) e.preventDefault();
-  });
+  el.addEventListener('click', e => { if (!confirm(el.dataset.confirm)) e.preventDefault(); });
 });
 
-// ── Search filter ──
+// ── Table search ──
 const searchInput = document.getElementById('tableSearch');
 if (searchInput) {
   searchInput.addEventListener('input', () => {
@@ -84,12 +32,40 @@ if (searchInput) {
   });
 }
 
-// ── Attendance form: auto-compute penalty preview ──
-document.querySelectorAll('select[name^="status_"]').forEach(sel => {
-  sel.addEventListener('change', () => {
-    const uid = sel.name.replace('status_', '');
-    const pts = { absent: 3, late: 1, present: 0, excused: 0 };
-    const ptsEl = document.getElementById('pts_' + uid);
-    if (ptsEl) ptsEl.textContent = pts[sel.value] ?? 0;
+// ── Attendance penalty preview ──
+const penMap = { present: 0, late: 75, absent: 150 };
+function updatePts(uid) {
+  const sel = document.getElementById('sel_' + uid);
+  const el  = document.getElementById('pts_' + uid);
+  if (!sel || !el) return;
+  const pts = penMap[sel.value] ?? 0;
+  el.textContent = pts;
+  el.className = 'fw-bold penalty-badge ' + (pts === 0 ? 'text-success' : pts === 75 ? 'text-warning' : 'text-danger');
+}
+
+// ── Custom modal system ──
+function openModal(id) {
+  document.getElementById(id)?.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(el) {
+  const overlay = el.closest('.modal-overlay');
+  if (overlay) { overlay.classList.remove('open'); document.body.style.overflow = ''; }
+}
+
+// Open via data-modal="id"
+document.querySelectorAll('[data-modal]').forEach(btn => {
+  btn.addEventListener('click', () => openModal(btn.dataset.modal));
+});
+
+// Close via data-modal-close (inside modal)
+document.querySelectorAll('[data-modal-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn));
+});
+
+// Close by clicking overlay backdrop
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) { overlay.classList.remove('open'); document.body.style.overflow = ''; }
   });
 });

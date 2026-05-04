@@ -30,40 +30,52 @@ function formatDateTime(string $dt): string {
 
 function statusBadge(string $status): string {
     $map = [
-        'active'     => 'badge-active',
-        'inactive'   => 'badge-inactive',
-        'probation'  => 'badge-probation',
-        'terminated' => 'badge-terminated',
-        'present'    => 'badge-present',
-        'absent'     => 'badge-absent',
-        'late'       => 'badge-late',
-        'excused'    => 'badge-excused',
+        'active'    => 'bg-success-subtle text-success',
+        'inactive'  => 'bg-secondary-subtle text-secondary',
+        'present'   => 'bg-success-subtle text-success',
+        'absent'    => 'bg-danger-subtle text-danger',
+        'late'      => 'bg-warning-subtle text-warning',
+        'excused'   => 'bg-info-subtle text-info',
     ];
-    $cls = $map[$status] ?? 'badge-default';
-    return '<span class="badge ' . $cls . '">' . h(ucfirst($status)) . '</span>';
+    $cls = $map[$status] ?? 'bg-secondary-subtle text-secondary';
+    return '<span class="badge rounded-pill ' . $cls . '">' . h(ucfirst($status)) . '</span>';
 }
 
 function roleBadge(string $role): string {
     $map = [
-        'moderator' => 'badge-moderator',
-        'officer'   => 'badge-officer',
-        'member'    => 'badge-member',
+        'moderator' => 'bg-primary text-white',
+        'officer'   => 'text-bg-warning',
+        'member'    => 'bg-secondary-subtle text-secondary',
     ];
-    $cls = $map[$role] ?? 'badge-default';
+    $cls = $map[$role] ?? 'bg-secondary-subtle text-secondary';
     return '<span class="badge ' . $cls . '">' . h(ucfirst($role)) . '</span>';
 }
 
-function penaltyColor(float $points): string {
-    if ($points === 0.0) return 'text-green';
-    if ($points <= 3.0) return 'text-yellow';
-    return 'text-red';
+function scholarshipBadge(string $status): string {
+    $map = [
+        'Full Scholar' => 'bg-success-subtle text-success',
+        'Half Scholar' => 'bg-warning-subtle text-warning',
+        'Not Scholar'  => 'bg-secondary-subtle text-secondary',
+    ];
+    $cls = $map[$status] ?? 'bg-secondary-subtle text-secondary';
+    return '<span class="badge rounded-pill ' . $cls . '">' . h($status) . '</span>';
 }
 
-function computePenalty(string $status): float {
+function penaltyClass(int $points): string {
+    if ($points === 0)   return 'text-success';
+    if ($points <= 75)   return 'text-warning';
+    return 'text-danger';
+}
+
+function penaltyColor(float $points): string {
+    return penaltyClass((int)$points);
+}
+
+function computePenalty(string $status): int {
     return match($status) {
-        'absent'  => PENALTY_ABSENT,
-        'late'    => PENALTY_LATE,
-        default   => 0.0,
+        'absent' => PENALTY_ABSENT,
+        'late'   => PENALTY_LATE,
+        default  => 0,
     };
 }
 
@@ -77,7 +89,7 @@ function recomputePenaltySummary(int $userId): void {
         'INSERT INTO penalty_summary (user_id, total_points, last_computed)
          VALUES (?, ?, NOW())
          ON DUPLICATE KEY UPDATE total_points = VALUES(total_points), last_computed = NOW()',
-        [$userId, $total]
+        [$userId, (int)$total]
     );
 }
 
@@ -96,23 +108,19 @@ function uploadFile(array $file, string $subdir = ''): array {
     if (!in_array($mime, ALLOWED_TYPES, true)) {
         return ['ok' => false, 'error' => 'MIME type not allowed.'];
     }
-
     $dir = UPLOAD_DIR . ($subdir ? rtrim($subdir, '/') . '/' : '');
     if (!is_dir($dir)) mkdir($dir, 0755, true);
-
     $filename = uniqid('', true) . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file['name']);
     $dest = $dir . $filename;
-
     if (!move_uploaded_file($file['tmp_name'], $dest)) {
         return ['ok' => false, 'error' => 'Failed to save file.'];
     }
-
     return [
-        'ok'        => true,
-        'path'      => 'uploads/' . ($subdir ? $subdir . '/' : '') . $filename,
-        'filename'  => $file['name'],
-        'size'      => $file['size'],
-        'mime'      => $mime,
+        'ok'       => true,
+        'path'     => 'uploads/' . ($subdir ? $subdir . '/' : '') . $filename,
+        'filename' => $file['name'],
+        'size'     => $file['size'],
+        'mime'     => $mime,
     ];
 }
 
@@ -121,9 +129,4 @@ function jsonResponse(mixed $data, int $code = 200): never {
     header('Content-Type: application/json');
     echo json_encode($data);
     exit;
-}
-
-function isAjax(): bool {
-    return ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest'
-        || ($_SERVER['HTTP_ACCEPT'] ?? '') === 'application/json';
 }

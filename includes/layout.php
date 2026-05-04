@@ -1,7 +1,5 @@
 <?php
-// layout.php — shared header/sidebar/footer
-// Call layout_head($title, $pageKey) before output
-// Call layout_foot() after output
+// layout.php — shared header/sidebar/footer (Bootstrap 5 + Bootstrap Icons)
 
 function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
     $user = currentUser();
@@ -9,7 +7,7 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
     $initials = substr($initials, 0, 2);
     $role = $user['role'];
     $currentPage = basename($_SERVER['PHP_SELF'], '.php');
-    
+
     $isActive = fn(string $key) => ($key === $currentPage || $key === $pageKey) ? ' active' : '';
     ?>
 <!DOCTYPE html>
@@ -18,88 +16,89 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= h($title) ?> — XUBand</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/assets/css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
 </head>
 <body>
-<div class="app-wrapper">
-  <!-- Sidebar -->
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-title">🎵 XUBand</div>
-      <div class="logo-sub">Digital Filing System</div>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-name"><i class="bi bi-music-note-beamed me-2"></i>XUBand</div>
+    <div class="brand-sub">Digital Filing System</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="sidebar-section">Main</div>
+    <a href="/dashboard.php" class="sidebar-link<?= $isActive('dashboard') ?>">
+      <i class="bi bi-house"></i> Dashboard
+    </a>
+    <a href="/announcements.php" class="sidebar-link<?= $isActive('announcements') ?>">
+      <i class="bi bi-megaphone"></i> Announcements
+    </a>
+    <a href="/events.php" class="sidebar-link<?= $isActive('events') ?>">
+      <i class="bi bi-calendar3"></i> Events &amp; Calendar
+    </a>
+
+    <div class="sidebar-section">Modules</div>
+    <a href="/music-sheets.php" class="sidebar-link<?= $isActive('music-sheets') ?>">
+      <i class="bi bi-music-note-beamed"></i> Music Sheets
+    </a>
+    <a href="/attendance.php" class="sidebar-link<?= $isActive('attendance') ?>">
+      <i class="bi bi-check2-square"></i> Attendance
+    </a>
+    <a href="/scholarships.php" class="sidebar-link<?= $isActive('scholarships') ?>">
+      <i class="bi bi-award"></i> Scholarships
+    </a>
+
+    <?php if ($role === 'moderator' || $role === 'officer'): ?>
+    <div class="sidebar-section">Management</div>
+    <a href="/members.php" class="sidebar-link<?= $isActive('members') ?>">
+      <i class="bi bi-people"></i> Members
+    </a>
+    <?php endif; ?>
+
+    <div class="sidebar-section">Account</div>
+    <a href="/profile.php" class="sidebar-link<?= $isActive('profile') ?>">
+      <i class="bi bi-person"></i> My Profile
+    </a>
+    <a href="/logout.php" class="sidebar-link" data-confirm="Log out?">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <?= h($user['name']) ?><br>
+    <?= h(ucfirst($role)) ?>
+  </div>
+</nav>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+<!-- Main wrapper -->
+<div id="main-wrapper">
+  <div id="topbar">
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-outline-secondary d-lg-none border-0" id="sidebarToggler">
+        <i class="bi bi-list fs-5"></i>
+      </button>
+      <span class="topbar-title"><?= h($title) ?></span>
     </div>
-    <div class="sidebar-nav">
-      <div class="nav-section-label">Main</div>
-      <a href="/dashboard.php" class="nav-link<?= $isActive('dashboard') ?>">
-        <span class="nav-icon">🏠</span> Dashboard
-      </a>
-      <a href="/announcements.php" class="nav-link<?= $isActive('announcements') ?>">
-        <span class="nav-icon">📢</span> Announcements
-      </a>
-      <a href="/events.php" class="nav-link<?= $isActive('events') ?>">
-        <span class="nav-icon">📅</span> Events & Calendar
-      </a>
-
-      <div class="nav-section-label">Modules</div>
-      <a href="/music-sheets.php" class="nav-link<?= $isActive('music-sheets') ?>">
-        <span class="nav-icon">🎼</span> Music Sheets
-      </a>
-      <a href="/attendance.php" class="nav-link<?= $isActive('attendance') ?>">
-        <span class="nav-icon">✅</span> Attendance
-      </a>
-      <a href="/scholarships.php" class="nav-link<?= $isActive('scholarships') ?>">
-        <span class="nav-icon">🎓</span> Scholarships
-      </a>
-
-      <?php if ($role === 'moderator' || $role === 'officer'): ?>
-      <div class="nav-section-label">Management</div>
-      <a href="/members.php" class="nav-link<?= $isActive('members') ?>">
-        <span class="nav-icon">👥</span> Members
-      </a>
-      <?php endif; ?>
-
-      <div class="nav-section-label">Account</div>
-      <a href="/profile.php" class="nav-link<?= $isActive('profile') ?>">
-        <span class="nav-icon">👤</span> My Profile
-      </a>
-      <a href="/logout.php" class="nav-link" data-confirm="Log out?">
-        <span class="nav-icon">🚪</span> Logout
-      </a>
-    </div>
-    <div class="sidebar-footer">
-      <?= h($user['name']) ?><br>
-      <span style="color:rgba(255,255,255,.3)"><?= h(ucfirst($role)) ?></span>
-    </div>
-  </nav>
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-  <!-- Main -->
-  <div class="main-content">
-    <div class="topbar">
-      <div class="topbar-left">
-        <button class="hamburger" id="hamburger">☰</button>
-        <span class="page-title"><?= h($title) ?></span>
+    <div class="d-flex align-items-center gap-2">
+      <div class="user-avatar"><?= h($initials) ?></div>
+      <div class="d-none d-sm-block">
+        <div class="fw-semibold" style="font-size:.82rem;color:#344054"><?= h($user['name']) ?></div>
+        <div class="text-muted" style="font-size:.74rem"><?= h(ucfirst($role)) ?></div>
       </div>
-      <div class="topbar-right">
-        <div class="user-chip">
-          <div class="user-avatar"><?= h($initials) ?></div>
-          <div>
-            <div style="font-weight:600;color:var(--text)"><?= h($user['name']) ?></div>
-            <div><?= h(ucfirst($role)) ?></div>
-          </div>
-        </div>
-      </div>
     </div>
-    <div class="page-content">
+  </div>
+  <div class="page-body">
 <?php
 }
 
 function layout_foot(): void {
 ?>
-    </div><!-- /page-content -->
-  </div><!-- /main-content -->
-</div><!-- /app-wrapper -->
+  </div><!-- /page-body -->
+</div><!-- /main-wrapper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/assets/js/main.js"></script>
 </body>
 </html>

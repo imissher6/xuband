@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$profile = dbQueryOne('SELECT * FROM users WHERE id = ?', [$user['id']]);
+$profile       = dbQueryOne('SELECT * FROM users WHERE id = ?', [$user['id']]);
 $myScholarship = dbQueryOne('SELECT * FROM scholarships WHERE user_id = ? ORDER BY id DESC LIMIT 1', [$user['id']]);
 $myAttendance  = dbQuery('SELECT a.*, e.title AS event_title, e.event_date, e.type FROM attendance a JOIN events e ON e.id = a.event_id WHERE a.user_id = ? ORDER BY e.event_date DESC LIMIT 10', [$user['id']]);
 $myPenalty     = dbQueryOne('SELECT * FROM penalty_summary WHERE user_id = ?', [$user['id']]);
@@ -50,110 +50,191 @@ $myPenalty     = dbQueryOne('SELECT * FROM penalty_summary WHERE user_id = ?', [
 layout_head('My Profile', 'profile');
 ?>
 
-<?php if ($e = getFlash('error')): ?><div class="alert alert-error" data-auto-dismiss>⚠️ <?= h($e) ?></div><?php endif; ?>
-<?php if ($s = getFlash('success')): ?><div class="alert alert-success" data-auto-dismiss>✅ <?= h($s) ?></div><?php endif; ?>
+<?php if ($e = getFlash('error')): ?>
+<div class="alert alert-danger d-flex align-items-center gap-2" data-auto-dismiss>
+  <i class="bi bi-exclamation-triangle-fill"></i> <?= h($e) ?>
+</div>
+<?php endif; ?>
+<?php if ($s = getFlash('success')): ?>
+<div class="alert alert-success d-flex align-items-center gap-2" data-auto-dismiss>
+  <i class="bi bi-check-circle-fill"></i> <?= h($s) ?>
+</div>
+<?php endif; ?>
 
-<div style="display:grid;grid-template-columns:1fr 1.5fr;gap:20px;align-items:start">
+<div class="row g-3 align-items-start">
 
-<!-- Profile Info -->
-<div>
-  <div class="card mb-4">
-    <div class="card-header"><span class="card-title">👤 Profile Information</span></div>
+<!-- Left: Profile Info + Password -->
+<div class="col-lg-4">
+  <div class="card mb-3">
+    <div class="card-header">
+      <span class="card-title"><i class="bi bi-person me-2"></i>Profile Information</span>
+    </div>
     <form method="POST">
       <input type="hidden" name="action" value="update_profile">
       <div class="card-body">
-        <div style="text-align:center;margin-bottom:20px">
-          <div style="width:70px;height:70px;background:var(--navy);border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:white;font-weight:800">
+        <div class="text-center mb-3">
+          <div class="user-avatar mx-auto mb-2" style="width:60px;height:60px;font-size:1.5rem">
             <?= strtoupper(substr($profile['name'],0,1)) ?>
           </div>
           <?= roleBadge($profile['role']) ?>
         </div>
-        <div class="form-group"><label class="form-label">Full Name *</label><input name="name" class="form-control" value="<?= h($profile['name']) ?>" required></div>
-        <div class="form-group"><label class="form-label">Email</label><input class="form-control" value="<?= h($profile['email']) ?>" disabled></div>
-        <div class="form-row form-row-2">
-          <div class="form-group"><label class="form-label">Instrument</label><input name="instrument" class="form-control" value="<?= h($profile['instrument'] ?? '') ?>"></div>
-          <div class="form-group"><label class="form-label">Year Level</label><input name="year_level" class="form-control" value="<?= h($profile['year_level'] ?? '') ?>"></div>
+        <div class="mb-3">
+          <label class="form-label">Full Name *</label>
+          <input name="name" class="form-control" value="<?= h($profile['name']) ?>" required>
         </div>
-        <div class="form-group"><label class="form-label">Contact Number</label><input name="contact_number" class="form-control" value="<?= h($profile['contact_number'] ?? '') ?>"></div>
-        <div class="form-group"><label class="form-label">Notes</label><textarea name="profile_notes" class="form-control"><?= h($profile['profile_notes'] ?? '') ?></textarea></div>
-        <div class="text-sm text-muted mb-2">Student ID: <?= h($profile['student_id'] ?: '—') ?> · Joined <?= formatDate($profile['created_at']) ?></div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input class="form-control" value="<?= h($profile['email']) ?>" disabled>
+        </div>
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label">Instrument</label>
+            <input name="instrument" class="form-control" value="<?= h($profile['instrument'] ?? '') ?>">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Year Level</label>
+            <input name="year_level" class="form-control" value="<?= h($profile['year_level'] ?? '') ?>">
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Contact Number</label>
+          <input name="contact_number" class="form-control" value="<?= h($profile['contact_number'] ?? '') ?>">
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Notes</label>
+          <textarea name="profile_notes" class="form-control"><?= h($profile['profile_notes'] ?? '') ?></textarea>
+        </div>
+        <div class="text-muted small mt-2">
+          Student ID: <?= h($profile['student_id'] ?: '—') ?> &middot; Joined <?= formatDate($profile['created_at']) ?>
+        </div>
       </div>
-      <div style="padding:12px 20px;border-top:1px solid var(--border)">
-        <button type="submit" class="btn btn-primary">Save Changes</button>
+      <div class="card-footer">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-1"></i>Save Changes
+        </button>
       </div>
     </form>
   </div>
 
   <div class="card">
-    <div class="card-header"><span class="card-title">🔐 Change Password</span></div>
+    <div class="card-header">
+      <span class="card-title"><i class="bi bi-key me-2"></i>Change Password</span>
+    </div>
     <form method="POST">
       <input type="hidden" name="action" value="change_password">
       <div class="card-body">
-        <div class="form-group"><label class="form-label">Current Password</label><input name="current_password" type="password" class="form-control" required></div>
-        <div class="form-group"><label class="form-label">New Password</label><input name="new_password" type="password" class="form-control" required></div>
-        <div class="form-group"><label class="form-label">Confirm Password</label><input name="confirm_password" type="password" class="form-control" required></div>
+        <div class="mb-3">
+          <label class="form-label">Current Password</label>
+          <input name="current_password" type="password" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">New Password</label>
+          <input name="new_password" type="password" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Confirm Password</label>
+          <input name="confirm_password" type="password" class="form-control" required>
+        </div>
       </div>
-      <div style="padding:12px 20px;border-top:1px solid var(--border)">
-        <button type="submit" class="btn btn-gold">Change Password</button>
+      <div class="card-footer">
+        <button type="submit" class="btn btn-gold">
+          <i class="bi bi-shield-lock me-1"></i>Change Password
+        </button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Stats + Recent Attendance -->
-<div>
+<!-- Right: Stats + Attendance -->
+<div class="col-lg-8">
   <?php if ($profile['role'] === 'member'): ?>
-  <!-- Scholarship -->
+
   <?php if ($myScholarship): ?>
-  <div class="card mb-4">
-    <div class="card-header"><span class="card-title">🎓 My Scholarship</span></div>
+  <div class="card mb-3">
+    <div class="card-header">
+      <span class="card-title"><i class="bi bi-award me-2"></i>My Scholarship</span>
+    </div>
     <div class="card-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><div class="text-muted text-xs">Status</div><?= statusBadge($myScholarship['status']) ?></div>
-        <div><div class="text-muted text-xs">Semester</div><div class="text-bold"><?= h($myScholarship['semester']) ?></div></div>
-        <div><div class="text-muted text-xs">GPA</div><div class="text-bold"><?= $myScholarship['gpa'] ? number_format($myScholarship['gpa'],2) : '—' ?></div></div>
-        <div><div class="text-muted text-xs">Band Score</div><div class="text-bold"><?= $myScholarship['band_participation_score'] ? $myScholarship['band_participation_score'].'/100' : '—' ?></div></div>
+      <div class="row g-3">
+        <div class="col-6">
+          <div class="text-muted small">Status</div>
+          <?= scholarshipBadge($myScholarship['status']) ?>
+        </div>
+        <div class="col-6">
+          <div class="text-muted small">Semester</div>
+          <div class="fw-bold"><?= h($myScholarship['semester'] ?? '—') ?></div>
+        </div>
+        <div class="col-6">
+          <div class="text-muted small">GPA</div>
+          <div class="fw-bold"><?= $myScholarship['gpa'] ? number_format($myScholarship['gpa'],2) : '—' ?></div>
+        </div>
+        <div class="col-6">
+          <div class="text-muted small">Band Score</div>
+          <div class="fw-bold"><?= $myScholarship['band_participation_score'] ? $myScholarship['band_participation_score'].'/100' : '—' ?></div>
+        </div>
         <?php if ($myScholarship['monthly_allowance']): ?>
-        <div><div class="text-muted text-xs">Monthly Allowance</div><div class="text-bold text-green">₱<?= number_format($myScholarship['monthly_allowance'],2) ?></div></div>
+        <div class="col-6">
+          <div class="text-muted small">Monthly Allowance</div>
+          <div class="fw-bold text-green">₱<?= number_format($myScholarship['monthly_allowance'],2) ?></div>
+        </div>
         <?php endif; ?>
       </div>
-      <?php if ($myScholarship['notes']): ?><div class="text-sm text-muted mt-2"><?= h($myScholarship['notes']) ?></div><?php endif; ?>
+      <?php if ($myScholarship['notes']): ?>
+      <div class="text-muted small mt-2"><?= h($myScholarship['notes']) ?></div>
+      <?php endif; ?>
     </div>
   </div>
   <?php endif; ?>
 
   <!-- Penalty Summary -->
-  <div class="card mb-4">
-    <div class="card-header"><span class="card-title">⚠️ My Attendance & Penalties</span></div>
+  <div class="card mb-3">
+    <div class="card-header">
+      <span class="card-title"><i class="bi bi-clipboard-check me-2"></i>My Attendance &amp; Penalties</span>
+    </div>
     <div class="card-body">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-        <div style="text-align:center;padding:12px;background:var(--bg);border-radius:8px">
-          <div style="font-size:1.5rem;font-weight:800;color:var(--green)"><?= dbQueryOne('SELECT COUNT(*) AS n FROM attendance WHERE user_id=? AND status="present"',[$user['id']])['n']??0 ?></div>
-          <div class="text-xs text-muted">Present</div>
+      <div class="row g-3 mb-3 text-center">
+        <div class="col-4">
+          <div class="p-2 rounded" style="background:var(--bg)">
+            <div class="fw-bold" style="font-size:1.5rem;color:var(--green)">
+              <?= dbQueryOne('SELECT COUNT(*) AS n FROM attendance WHERE user_id=? AND status="present"',[$user['id']])['n']??0 ?>
+            </div>
+            <div class="text-muted small">Present</div>
+          </div>
         </div>
-        <div style="text-align:center;padding:12px;background:var(--bg);border-radius:8px">
-          <div style="font-size:1.5rem;font-weight:800;color:var(--red)"><?= dbQueryOne('SELECT COUNT(*) AS n FROM attendance WHERE user_id=? AND status="absent"',[$user['id']])['n']??0 ?></div>
-          <div class="text-xs text-muted">Absent</div>
+        <div class="col-4">
+          <div class="p-2 rounded" style="background:var(--bg)">
+            <div class="fw-bold" style="font-size:1.5rem;color:var(--red)">
+              <?= dbQueryOne('SELECT COUNT(*) AS n FROM attendance WHERE user_id=? AND status="absent"',[$user['id']])['n']??0 ?>
+            </div>
+            <div class="text-muted small">Absent</div>
+          </div>
         </div>
-        <div style="text-align:center;padding:12px;background:var(--bg);border-radius:8px">
-          <div style="font-size:1.5rem;font-weight:800;<?= 'color:' . (((float)($myPenalty['total_points']??0)) > 3 ? 'var(--red)' : 'var(--green)') ?>"><?= $myPenalty['total_points'] ?? 0 ?></div>
-          <div class="text-xs text-muted">Penalty Pts</div>
+        <div class="col-4">
+          <div class="p-2 rounded" style="background:var(--bg)">
+            <div class="fw-bold <?= penaltyColor((float)($myPenalty['total_points']??0)) ?>" style="font-size:1.5rem">
+              <?= $myPenalty['total_points'] ?? 0 ?>
+            </div>
+            <div class="text-muted small">Penalty Pts</div>
+          </div>
         </div>
       </div>
-      <h4 class="mb-2">Recent Attendance</h4>
+
+      <h6 class="mb-2">Recent Attendance</h6>
       <?php if (!$myAttendance): ?>
-      <p class="text-muted text-sm">No records yet.</p>
+      <p class="text-muted small">No records yet.</p>
       <?php else: ?>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Event</th><th>Date</th><th>Status</th><th>Penalty</th></tr></thead>
+          <thead>
+            <tr><th>Event</th><th>Date</th><th>Status</th><th>Penalty</th></tr>
+          </thead>
           <tbody>
             <?php foreach ($myAttendance as $a): ?>
             <tr>
               <td><?= h($a['event_title']) ?></td>
-              <td class="text-sm"><?= formatDate($a['event_date']) ?></td>
+              <td class="small"><?= formatDate($a['event_date']) ?></td>
               <td><?= statusBadge($a['att_status'] ?? $a['status']) ?></td>
-              <td class="<?= penaltyColor((float)$a['penalty_points']) ?> text-bold"><?= $a['penalty_points'] ?></td>
+              <td class="<?= penaltyColor((float)$a['penalty_points']) ?> fw-bold"><?= $a['penalty_points'] ?></td>
             </tr>
             <?php endforeach; ?>
           </tbody>
@@ -162,6 +243,7 @@ layout_head('My Profile', 'profile');
       <?php endif; ?>
     </div>
   </div>
+
   <?php endif; ?>
 </div>
 
