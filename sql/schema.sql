@@ -114,15 +114,15 @@ CREATE TABLE IF NOT EXISTS announcements (
 -- ============================================================
 
 -- All accounts use password: "password"
--- Hash: $2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uADnia (PHP bcrypt for "password")
+-- Hash generated with bcrypt cost 10, verified compatible with PHP password_verify()
 INSERT INTO users (name, email, password_hash, role, instrument, year_level, student_id, status) VALUES
-('Band Moderator',          'moderator@xuband.edu.ph',   '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uADnia', 'moderator', NULL,         NULL,       'MOD-001',    'active'),
-('Guin Alexis Gabutin',     'gabutin@xuband.edu.ph',     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uADnia', 'officer',   'Trumpet',    '3rd Year', 'XU-2022-001','active'),
-('Jude P. Macalaguing',     'macalaguing@xuband.edu.ph', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uADnia', 'member',    'Trombone',   '2nd Year', 'XU-2023-001','active'),
-('Nicole Sai Sophie Gabutan','gabutan@xuband.edu.ph',    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uADnia', 'member',    'Flute',      '3rd Year', 'XU-2022-002','active'),
-('Christopher Basin',        'basin@xuband.edu.ph',      '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uADnia', 'member',    'Percussion', '1st Year', 'XU-2024-001','active'),
-('Kyle Rusty Brazil',        'brazil@xuband.edu.ph',     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uADnia', 'member',    'Saxophone',  '2nd Year', 'XU-2023-002','active'),
-('Mayeoh Fay D. Barangot',   'barangot@xuband.edu.ph',   '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uADnia', 'member',    'Clarinet',   '1st Year', 'XU-2024-002','active');
+('Band Moderator',           'moderator@xuband.edu.ph',   '$2b$10$bgJSY64smLKwTYVtv0SXhuXDjij9BzVnpm45cPQqrcOg8OWjIrIia', 'moderator', NULL,         NULL,       'MOD-001',    'active'),
+('Guin Alexis Gabutin',      'gabutin@xuband.edu.ph',     '$2b$10$bgJSY64smLKwTYVtv0SXhuXDjij9BzVnpm45cPQqrcOg8OWjIrIia', 'officer',   'Trumpet',    '3rd Year', 'XU-2022-001','active'),
+('Jude P. Macalaguing',      'macalaguing@xuband.edu.ph', '$2b$10$bgJSY64smLKwTYVtv0SXhuXDjij9BzVnpm45cPQqrcOg8OWjIrIia', 'member',    'Trombone',   '2nd Year', 'XU-2023-001','active'),
+('Nicole Sai Sophie Gabutan','gabutan@xuband.edu.ph',     '$2b$10$bgJSY64smLKwTYVtv0SXhuXDjij9BzVnpm45cPQqrcOg8OWjIrIia', 'member',    'Flute',      '3rd Year', 'XU-2022-002','active'),
+('Christopher Basin',        'basin@xuband.edu.ph',       '$2b$10$bgJSY64smLKwTYVtv0SXhuXDjij9BzVnpm45cPQqrcOg8OWjIrIia', 'member',    'Percussion', '1st Year', 'XU-2024-001','active'),
+('Kyle Rusty Brazil',        'brazil@xuband.edu.ph',      '$2b$10$bgJSY64smLKwTYVtv0SXhuXDjij9BzVnpm45cPQqrcOg8OWjIrIia', 'member',    'Saxophone',  '2nd Year', 'XU-2023-002','active'),
+('Mayeoh Fay D. Barangot',   'barangot@xuband.edu.ph',    '$2b$10$bgJSY64smLKwTYVtv0SXhuXDjij9BzVnpm45cPQqrcOg8OWjIrIia', 'member',    'Clarinet',   '1st Year', 'XU-2024-002','active');
 
 -- Sample Events
 INSERT INTO events (title, type, event_date, event_time, location, description, created_by) VALUES
