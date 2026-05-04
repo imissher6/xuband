@@ -1,14 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-PORT=${PORT:-8080}
+PORT="${PORT:-80}"
+echo "[entrypoint] Using PORT=${PORT}"
 
-echo "Using PORT=$PORT"
+# Patch Apache to listen on $PORT
+sed -i "s/Listen [0-9]*/Listen ${PORT}/" /etc/apache2/ports.conf
+sed -i "s/<VirtualHost \*:[0-9]*>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf
 
-# Only replace port 80 safely
-sed -i "s/Listen 80/Listen ${PORT}/g" /etc/apache2/ports.conf
-sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/g" /etc/apache2/sites-available/000-default.conf
-
-echo "Starting Apache on port ${PORT}..."
+# Verify config before starting
+apache2ctl configtest 2>&1 || true
 
 exec apache2-foreground
