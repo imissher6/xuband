@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo pdo_mysql mysqli gd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Force-remove conflicting MPM symlinks, then enable only prefork + rewrite
+# Fix MPM conflict: remove event/worker symlinks, enable prefork + rewrite
 RUN rm -f /etc/apache2/mods-enabled/mpm_event.load \
           /etc/apache2/mods-enabled/mpm_event.conf \
           /etc/apache2/mods-enabled/mpm_worker.load \
@@ -17,6 +17,10 @@ RUN rm -f /etc/apache2/mods-enabled/mpm_event.load \
 # Copy Apache config
 COPY apache.conf /etc/apache2/sites-available/000-default.conf
 COPY ports.conf /etc/apache2/ports.conf
+
+# Copy entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Set working directory
 WORKDIR /var/www/html
@@ -33,9 +37,6 @@ RUN mkdir -p /var/www/html/public/uploads \
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
-EXPOSE ${PORT:-80}
+EXPOSE 80
 
-# Substitute $PORT at runtime then start Apache
-CMD bash -c "sed -i \"s/Listen .*/Listen \${PORT:-80}/g\" /etc/apache2/ports.conf && \
-    sed -i \"s/<VirtualHost \*:[0-9]*>/<VirtualHost *:\${PORT:-80}>/g\" /etc/apache2/sites-available/000-default.conf && \
-    apache2-foreground"
+ENTRYPOINT ["/entrypoint.sh"]
