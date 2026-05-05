@@ -15,7 +15,8 @@ if ($token !== $validToken) {
     die('<h1>Forbidden</h1><p>Add ?token=xuband_setup_2024 to the URL to run setup.</p>');
 }
 
-$dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=utf8mb4';
+$host = (DB_HOST === 'localhost') ? '127.0.0.1' : DB_HOST;
+$dsn = 'mysql:host=' . $host . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
 try {
     $pdo = new PDO($dsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 } catch (Exception $e) {

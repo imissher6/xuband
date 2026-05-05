@@ -1,8 +1,6 @@
 -- XUBand Digital Filing System Schema v2
 -- Xavier University Band
 
-CREATE DATABASE IF NOT EXISTS xuband CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE xuband;
 
 -- Users
 CREATE TABLE IF NOT EXISTS users (
