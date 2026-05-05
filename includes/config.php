@@ -5,9 +5,9 @@ define('APP_VERSION', '1.0.0');
 define('APP_URL', getenv('APP_URL') ?: 'http://localhost');
 
 // Database config from environment variables (Railway injects these)
-define('DB_HOST', getenv('MYSQLHOST')     ?: getenv('DB_HOST') ?: 'localhost');
+define('DB_HOST', getenv('MYSQLHOST')     ?: getenv('DB_HOST') ?: 'mysql.railway.internal');
 define('DB_PORT', getenv('MYSQLPORT')     ?: getenv('DB_PORT') ?: '3306');
-define('DB_NAME', getenv('MYSQLDATABASE') ?: getenv('DB_NAME') ?: 'xuband');
+define('DB_NAME', getenv('MYSQLDATABASE') ?: getenv('DB_NAME') ?: 'railway');
 define('DB_USER', getenv('MYSQLUSER')     ?: getenv('DB_USER') ?: 'root');
 define('DB_PASS', getenv('MYSQLPASSWORD') ?: getenv('DB_PASS') ?: '');
 
