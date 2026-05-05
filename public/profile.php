@@ -43,7 +43,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $profile       = dbQueryOne('SELECT * FROM users WHERE id = ?', [$user['id']]);
-$myScholarship = dbQueryOne('SELECT * FROM scholarships WHERE user_id = ? ORDER BY id DESC LIMIT 1', [$user['id']]);
+$myScholarship = dbQueryOne(
+    'SELECT s.*, st.term, sy.label AS year_label
+     FROM scholarships s
+     JOIN scholarship_terms st ON st.id = s.term_id
+     JOIN school_years sy ON sy.id = st.school_year_id
+     WHERE s.user_id = ? ORDER BY s.id DESC LIMIT 1',
+    [$user['id']]
+);
 $myAttendance  = dbQuery('SELECT a.*, e.title AS event_title, e.event_date, e.type FROM attendance a JOIN events e ON e.id = a.event_id WHERE a.user_id = ? ORDER BY e.event_date DESC LIMIT 10', [$user['id']]);
 $myPenalty     = dbQueryOne('SELECT * FROM penalty_summary WHERE user_id = ?', [$user['id']]);
 
@@ -162,26 +169,17 @@ layout_head('My Profile', 'profile');
         </div>
         <div class="col-6">
           <div class="text-muted small">Semester</div>
-          <div class="fw-bold"><?= h($myScholarship['semester'] ?? '—') ?></div>
+          <div class="fw-bold"><?= h($myScholarship['term'] ?? '—') ?></div>
         </div>
         <div class="col-6">
-          <div class="text-muted small">GPA</div>
-          <div class="fw-bold"><?= $myScholarship['gpa'] ? number_format($myScholarship['gpa'],2) : '—' ?></div>
+          <div class="text-muted small">School Year</div>
+          <div class="fw-bold"><?= h($myScholarship['year_label'] ?? '—') ?></div>
         </div>
         <div class="col-6">
-          <div class="text-muted small">Band Score</div>
-          <div class="fw-bold"><?= $myScholarship['band_participation_score'] ? $myScholarship['band_participation_score'].'/100' : '—' ?></div>
+          <div class="text-muted small">Last Updated</div>
+          <div class="fw-bold"><?= $myScholarship['updated_at'] ? formatDate($myScholarship['updated_at']) : '—' ?></div>
         </div>
-        <?php if ($myScholarship['monthly_allowance']): ?>
-        <div class="col-6">
-          <div class="text-muted small">Monthly Allowance</div>
-          <div class="fw-bold text-green">₱<?= number_format($myScholarship['monthly_allowance'],2) ?></div>
-        </div>
-        <?php endif; ?>
       </div>
-      <?php if ($myScholarship['notes']): ?>
-      <div class="text-muted small mt-2"><?= h($myScholarship['notes']) ?></div>
-      <?php endif; ?>
     </div>
   </div>
   <?php endif; ?>
