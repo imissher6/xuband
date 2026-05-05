@@ -6,7 +6,6 @@ require_once __DIR__ . '/../includes/layout.php';
 requireLogin();
 $user = currentUser();
 
-// ── POST handlers (officers/moderators only) ──────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isOfficer()) { http_response_code(403); exit; }
     $action = $_POST['action'] ?? '';
@@ -35,19 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $instrument = trim($_POST['instrument'] ?? '');
         if (!$folder_id || !$title) { flash('error', 'Folder and title are required.'); redirect('/music-sheets.php?folder=' . $folder_id); }
         if (empty($_FILES['file']['name'])) { flash('error', 'Please select a file.'); redirect('/music-sheets.php?folder=' . $folder_id); }
-
         $upload = uploadFile($_FILES['file'], 'music-sheets');
         if (!$upload['ok']) { flash('error', $upload['error']); redirect('/music-sheets.php?folder=' . $folder_id); }
-
         $sheet_id = dbInsert('INSERT INTO music_sheets (folder_id,title,instrument,file_path,file_name,file_size,file_type,uploaded_by) VALUES (?,?,?,?,?,?,?,?)',
             [$folder_id,$title,$instrument,$upload['path'],$upload['filename'],$upload['size'],$upload['mime'],$user['id']]);
-
         $members = dbQuery('SELECT id FROM users WHERE role="member" AND status="active"');
         foreach ($members as $m) {
-            dbExecute('INSERT IGNORE INTO music_assignments (sheet_id,user_id,assigned_by) VALUES (?,?,?)',
-                [$sheet_id, $m['id'], $user['id']]);
+            dbExecute('INSERT IGNORE INTO music_assignments (sheet_id,user_id,assigned_by) VALUES (?,?,?)', [$sheet_id,$m['id'],$user['id']]);
         }
-
         flash('success', "File \"$title\" uploaded.");
         redirect('/music-sheets.php?folder=' . $folder_id);
     }
@@ -71,15 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $assigned  = $_POST['assigned'] ?? [];
         dbExecute('DELETE FROM music_assignments WHERE sheet_id = ?', [$sheet_id]);
         foreach ($assigned as $uid) {
-            dbExecute('INSERT IGNORE INTO music_assignments (sheet_id,user_id,assigned_by) VALUES (?,?,?)',
-                [$sheet_id, (int)$uid, $user['id']]);
+            dbExecute('INSERT IGNORE INTO music_assignments (sheet_id,user_id,assigned_by) VALUES (?,?,?)', [$sheet_id,(int)$uid,$user['id']]);
         }
         flash('success', 'Assignments saved.');
         redirect('/music-sheets.php?folder=' . $folder_id);
     }
 }
 
-// ── View ──────────────────────────────────────────────────────────
 $folderId = (int)($_GET['folder'] ?? 0);
 
 if ($folderId) {
@@ -94,7 +86,7 @@ if ($folderId) {
     $allMembers = isOfficer() ? dbQuery('SELECT id,name,instrument FROM users WHERE role="member" AND status="active" ORDER BY name') : [];
 
     layout_head('Music Sheets — ' . $folder['name'], 'music-sheets');
-    ?>
+?>
 
 <?php if ($e = getFlash('error')): ?>
 <div class="alert alert-danger d-flex align-items-center gap-2" data-auto-dismiss>
@@ -111,7 +103,7 @@ if ($folderId) {
   <a href="/music-sheets.php" class="btn btn-outline btn-sm">
     <i class="bi bi-arrow-left me-1"></i> Back to Folders
   </a>
-  <h2 class="mb-0" style="color:var(--navy)">
+  <h2 class="mb-0" style="color:var(--xu-navy)">
     <i class="bi bi-folder2-open me-2"></i><?= h($folder['name']) ?>
   </h2>
   <?php if ($folder['description']): ?>
@@ -140,9 +132,9 @@ if ($folderId) {
     <p><?= isOfficer() ? 'No files uploaded yet.' : 'No sheets assigned to you yet.' ?></p>
   </div>
   <?php else: ?>
-  <div class="table-wrap">
-    <table>
-      <thead>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
         <tr>
           <th>Title</th><th>Instrument</th><th>File</th>
           <th>Uploaded by</th><th>Date</th><th>Actions</th>
@@ -157,11 +149,15 @@ if ($folderId) {
             'jpg','jpeg','png','gif' => 'bi-file-image text-success',
             default                  => 'bi-file-earmark'
           };
-          $size = $sh['file_size'] ? round($sh['file_size']/1024,1).' KB' : '';
+          $size      = $sh['file_size'] ? round($sh['file_size']/1024,1).' KB' : '';
+          $isImage   = in_array($ext, ['jpg','jpeg','png','gif']);
+          $isPdf     = $ext === 'pdf';
+          $isAudio   = $ext === 'mp3';
+          $fileUrl   = '/' . h($sh['file_path']);
         ?>
         <tr>
           <td><strong><?= h($sh['title']) ?></strong></td>
-          <td><?= $sh['instrument'] ? '<span class="badge badge-member">'.h($sh['instrument']).'</span>' : '<span class="text-muted">—</span>' ?></td>
+          <td><?= $sh['instrument'] ? '<span class="badge bg-secondary">'.h($sh['instrument']).'</span>' : '<span class="text-muted">—</span>' ?></td>
           <td>
             <i class="bi <?= $icon ?>"></i>
             <span class="small ms-1"><?= h($sh['file_name']) ?><?= $size ? " · $size" : '' ?></span>
@@ -169,22 +165,36 @@ if ($folderId) {
           <td class="small text-muted"><?= h($sh['uploader']) ?></td>
           <td class="small text-muted"><?= formatDate($sh['created_at']) ?></td>
           <td>
-            <a href="/<?= h($sh['file_path']) ?>" download="<?= h($sh['file_name']) ?>" class="btn btn-gold btn-xs">
-              <i class="bi bi-download me-1"></i>Download
-            </a>
-            <?php if (isOfficer()): ?>
-            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalAssign'); loadAssignments(<?= $sh['id'] ?>, <?= $folderId ?>, '<?= h(addslashes($sh['title'])) ?>')">
-              <i class="bi bi-people"></i> Assign
-            </button>
-            <form method="POST" style="display:inline">
-              <input type="hidden" name="action" value="delete_file">
-              <input type="hidden" name="id" value="<?= $sh['id'] ?>">
-              <input type="hidden" name="folder_id" value="<?= $folderId ?>">
-              <button class="btn btn-xs btn-danger" data-confirm="Delete this file?">
-                <i class="bi bi-trash"></i>
+            <div class="d-flex gap-1 flex-wrap">
+              <?php if ($isPdf || $isImage): ?>
+              <button class="btn btn-sm btn-outline-secondary"
+                onclick="previewFile('<?= $fileUrl ?>', '<?= $ext ?>', '<?= h(addslashes($sh['title'])) ?>')">
+                <i class="bi bi-eye me-1"></i>Preview
               </button>
-            </form>
-            <?php endif; ?>
+              <?php elseif ($isAudio): ?>
+              <button class="btn btn-sm btn-outline-secondary"
+                onclick="previewFile('<?= $fileUrl ?>', 'mp3', '<?= h(addslashes($sh['title'])) ?>')">
+                <i class="bi bi-play-circle me-1"></i>Play
+              </button>
+              <?php endif; ?>
+              <a href="<?= $fileUrl ?>" download="<?= h($sh['file_name']) ?>" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-download me-1"></i>Download
+              </a>
+              <?php if (isOfficer()): ?>
+              <button class="btn btn-sm btn-outline-dark"
+                onclick="openModal('xumodalAssign'); loadAssignments(<?= $sh['id'] ?>, <?= $folderId ?>, '<?= h(addslashes($sh['title'])) ?>')">
+                <i class="bi bi-people me-1"></i>Assign
+              </button>
+              <form method="POST" class="d-inline">
+                <input type="hidden" name="action" value="delete_file">
+                <input type="hidden" name="id" value="<?= $sh['id'] ?>">
+                <input type="hidden" name="folder_id" value="<?= $folderId ?>">
+                <button class="btn btn-sm btn-outline-danger" data-confirm="Delete this file?">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              <?php endif; ?>
+            </div>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -192,6 +202,18 @@ if ($folderId) {
     </table>
   </div>
   <?php endif; ?>
+</div>
+
+<!-- Preview Modal -->
+<div class="xu-modal-overlay" id="xumodalPreview">
+  <div class="xu-modal" style="max-width:800px;width:95vw">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title" id="previewTitle">Preview</span>
+      <button class="xu-modal-close" onclick="closeModal(this);stopAudio()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="xu-modal-body p-0" id="previewBody" style="min-height:300px;display:flex;align-items:center;justify-content:center;background:#f8f9fa">
+    </div>
+  </div>
 </div>
 
 <?php if (isOfficer()): ?>
@@ -221,7 +243,7 @@ if ($folderId) {
         </div>
       </div>
       <div class="xu-modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Upload</button>
       </div>
     </form>
@@ -247,20 +269,21 @@ if ($folderId) {
             <input type="checkbox" name="assigned[]" value="<?= $m['id'] ?>"
               class="form-check-input member-assign-cb" data-uid="<?= $m['id'] ?>">
             <span><?= h($m['name']) ?></span>
-            <?php if ($m['instrument']): ?><span class="badge badge-member"><?= h($m['instrument']) ?></span><?php endif; ?>
+            <?php if ($m['instrument']): ?><span class="badge bg-secondary"><?= h($m['instrument']) ?></span><?php endif; ?>
           </div>
           <?php endforeach; ?>
         </div>
       </div>
-      <div class="modal-footer gap-2">
-        <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllAssign(true)">Select All</button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllAssign(false)">None</button>
-        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
+      <div class="xu-modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleAllAssign(true)">Select All</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleAllAssign(false)">None</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">Save</button>
       </div>
     </form>
   </div>
 </div>
+<?php endif; ?>
 
 <script>
 function loadAssignments(sheetId, folderId, title) {
@@ -278,13 +301,27 @@ function loadAssignments(sheetId, folderId, title) {
 function toggleAllAssign(val) {
   document.querySelectorAll('.member-assign-cb').forEach(cb => cb.checked = val);
 }
+function stopAudio() {
+  const a = document.querySelector('#previewBody audio');
+  if (a) { a.pause(); a.currentTime = 0; }
+}
+function previewFile(url, ext, title) {
+  document.getElementById('previewTitle').textContent = title;
+  const body = document.getElementById('previewBody');
+  if (ext === 'pdf') {
+    body.innerHTML = '<iframe src="' + url + '" style="width:100%;height:75vh;border:0"></iframe>';
+  } else if (['jpg','jpeg','png','gif'].includes(ext)) {
+    body.innerHTML = '<img src="' + url + '" style="max-width:100%;max-height:75vh;object-fit:contain;padding:1rem">';
+  } else if (ext === 'mp3') {
+    body.innerHTML = '<div class="p-4 text-center"><i class="bi bi-file-music" style="font-size:3rem;color:var(--xu-navy)"></i><br><br><audio controls autoplay style="width:100%;max-width:400px"><source src="' + url + '" type="audio/mpeg"></audio></div>';
+  }
+  openModal('xumodalPreview');
+}
 </script>
-<?php endif; ?>
 
 <?php
 
 } else {
-    // Folder listing
     if (isOfficer()) {
         $folders = dbQuery('SELECT f.*, u.name AS creator, COUNT(ms.id) AS file_count FROM music_folders f JOIN users u ON u.id = f.created_by LEFT JOIN music_sheets ms ON ms.folder_id = f.id GROUP BY f.id ORDER BY f.created_at DESC');
     } else {
@@ -292,7 +329,7 @@ function toggleAllAssign(val) {
     }
 
     layout_head('Music Sheets', 'music-sheets');
-    ?>
+?>
 
 <?php if ($e = getFlash('error')): ?>
 <div class="alert alert-danger d-flex align-items-center gap-2" data-auto-dismiss>
@@ -332,7 +369,7 @@ function toggleAllAssign(val) {
       <div class="col-sm-6 col-md-4 col-lg-3">
         <div class="folder-card" onclick="window.location='/music-sheets.php?folder=<?= $f['id'] ?>'">
           <i class="bi bi-folder2-open folder-icon"></i>
-          <div class="fw-bold" style="color:var(--navy);margin-bottom:4px"><?= h($f['name']) ?></div>
+          <div class="fw-bold" style="color:var(--xu-navy);margin-bottom:4px"><?= h($f['name']) ?></div>
           <?php if ($f['description']): ?>
           <div class="small text-muted mb-2"><?= h(mb_substr($f['description'],0,60)) ?></div>
           <?php endif; ?>
@@ -342,10 +379,10 @@ function toggleAllAssign(val) {
           </div>
           <?php if (isOfficer()): ?>
           <div class="mt-2" onclick="event.stopPropagation()">
-            <form method="POST" style="display:inline">
+            <form method="POST" class="d-inline">
               <input type="hidden" name="action" value="delete_folder">
               <input type="hidden" name="id" value="<?= $f['id'] ?>">
-              <button class="btn btn-xs btn-danger" data-confirm="Delete folder and all files inside?">
+              <button class="btn btn-sm btn-outline-danger" data-confirm="Delete folder and all files inside?">
                 <i class="bi bi-trash me-1"></i>Delete
               </button>
             </form>
@@ -379,7 +416,7 @@ function toggleAllAssign(val) {
         </div>
       </div>
       <div class="xu-modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-folder-plus me-1"></i>Create Folder
         </button>

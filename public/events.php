@@ -44,6 +44,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash('success', 'Event deleted.');
         redirect('/events.php');
     }
+
+    if ($action === 'bulk_delete') {
+        $ids = array_map('intval', $_POST['ids'] ?? []);
+        if ($ids) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            dbExecute("DELETE FROM events WHERE id IN ($placeholders)", $ids);
+            flash('success', count($ids) . ' event(s) deleted.');
+        }
+        redirect('/events.php');
+    }
 }
 
 $month = (int)($_GET['month'] ?? date('n'));
@@ -83,20 +93,21 @@ layout_head('Events & Calendar', 'events');
 
 <div class="row g-3 align-items-start">
 
+<!-- Calendar -->
 <div class="col-lg-8">
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-2">
-        <a href="?month=<?= $prevMonth ?>&year=<?= $prevYear ?>" class="btn btn-outline btn-sm">
+        <a href="?month=<?= $prevMonth ?>&year=<?= $prevYear ?>" class="btn btn-outline-secondary btn-sm">
           <i class="bi bi-chevron-left"></i>
         </a>
         <span class="card-title"><?= $monthName ?></span>
-        <a href="?month=<?= $nextMonth ?>&year=<?= $nextYear ?>" class="btn btn-outline btn-sm">
+        <a href="?month=<?= $nextMonth ?>&year=<?= $nextYear ?>" class="btn btn-outline-secondary btn-sm">
           <i class="bi bi-chevron-right"></i>
         </a>
       </div>
       <?php if (isOfficer()): ?>
-      <button class="btn btn-primary btn-sm" onclick="openModal('xumodalEvent')" onclick="resetEventForm()">
+      <button class="btn btn-primary btn-sm" onclick="openModal('xumodalEvent'); resetEventForm()">
         <i class="bi bi-plus-lg me-1"></i> Add Event
       </button>
       <?php endif; ?>
@@ -119,57 +130,85 @@ layout_head('Events & Calendar', 'events');
         <?php endfor; ?>
       </div>
       <div class="d-flex gap-3 mt-3 flex-wrap" style="font-size:.75rem">
-        <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:var(--navy);border-radius:2px"></span>Rehearsal</span>
+        <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:var(--xu-navy);border-radius:2px"></span>Rehearsal</span>
         <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:#7c3aed;border-radius:2px"></span>Performance</span>
-        <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:var(--green);border-radius:2px"></span>Meeting</span>
-        <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:var(--gold);border-radius:2px"></span>Other</span>
+        <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:#16a34a;border-radius:2px"></span>Meeting</span>
+        <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:var(--xu-gold);border-radius:2px"></span>Other</span>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Event List with bulk -->
 <div class="col-lg-4">
   <div class="card">
-    <div class="card-header"><span class="card-title"><i class="bi bi-list-ul me-2"></i>All Events</span></div>
-    <div style="max-height:520px;overflow-y:auto">
-      <?php if (!$allEvents): ?>
-      <div class="empty-state"><div class="empty-icon"><i class="bi bi-calendar-x"></i></div><p>No events yet.</p></div>
-      <?php else: foreach ($allEvents as $ev):
-        $isPast = strtotime($ev['event_date']) < strtotime(date('Y-m-d'));
-      ?>
-      <div class="px-3 py-2 border-bottom <?= $isPast ? 'opacity-50' : '' ?>">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
-          <span class="badge badge-member"><?= h(ucfirst($ev['type'])) ?></span>
-          <?php if (isOfficer()): ?>
-          <div class="d-flex gap-1">
-            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalEvent'); fillEvent(<?= htmlspecialchars(json_encode($ev), ENT_QUOTES) ?>)">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <form method="POST" style="display:inline">
-              <input type="hidden" name="action" value="delete">
-              <input type="hidden" name="id" value="<?= $ev['id'] ?>">
-              <button class="btn btn-xs btn-danger" data-confirm="Delete this event?">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <span class="card-title"><i class="bi bi-list-ul me-2"></i>All Events</span>
+      <?php if (isOfficer() && $allEvents): ?>
+      <div class="d-flex gap-1 flex-wrap">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="evSelectAllBtn" onclick="evToggleAll()">
+          <i class="bi bi-check-all"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger d-none" id="evBulkBtn"
+          onclick="evBulkDelete()">
+          <i class="bi bi-trash me-1"></i><span id="evBulkCount">0</span>
+        </button>
+      </div>
+      <?php endif; ?>
+    </div>
+    <form method="POST" id="bulkForm-events">
+      <input type="hidden" name="action" value="bulk_delete">
+      <div style="max-height:520px;overflow-y:auto">
+        <?php if (!$allEvents): ?>
+        <div class="empty-state"><div class="empty-icon"><i class="bi bi-calendar-x"></i></div><p>No events yet.</p></div>
+        <?php else: foreach ($allEvents as $ev):
+          $isPast = strtotime($ev['event_date']) < strtotime(date('Y-m-d'));
+        ?>
+        <div class="px-3 py-2 border-bottom <?= $isPast ? 'opacity-50' : '' ?>">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
+            <div class="d-flex align-items-center gap-2">
+              <?php if (isOfficer()): ?>
+              <input type="checkbox" name="ids[]" value="<?= $ev['id'] ?>"
+                class="form-check-input ev-bulk-cb" onchange="evUpdateCount()">
+              <?php endif; ?>
+              <span class="badge bg-secondary"><?= h(ucfirst($ev['type'])) ?></span>
+            </div>
+            <?php if (isOfficer()): ?>
+            <div class="d-flex gap-1">
+              <button type="button" class="btn btn-xs btn-outline-secondary"
+                onclick="openModal('xumodalEvent'); fillEvent(<?= htmlspecialchars(json_encode($ev), ENT_QUOTES) ?>)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button type="button" class="btn btn-xs btn-outline-danger"
+                onclick="if(confirm('Delete this event?')){document.getElementById('evDelId').value='<?= $ev['id'] ?>';document.getElementById('evDelForm').submit();}">
                 <i class="bi bi-trash"></i>
               </button>
-            </form>
+            </div>
+            <?php endif; ?>
           </div>
-          <?php endif; ?>
+          <div class="fw-bold small" style="color:var(--xu-navy)"><?= h($ev['title']) ?></div>
+          <div class="text-muted" style="font-size:.75rem">
+            <?= formatDate($ev['event_date']) ?>
+            <?= $ev['event_time'] ? ' · '.date('h:i A', strtotime($ev['event_time'])) : '' ?>
+            <?= $ev['location'] ? ' · '.h($ev['location']) : '' ?>
+          </div>
         </div>
-        <div class="fw-bold small" style="color:var(--navy)"><?= h($ev['title']) ?></div>
-        <div class="text-muted" style="font-size:.75rem">
-          <?= formatDate($ev['event_date']) ?>
-          <?= $ev['event_time'] ? ' · '.date('h:i A', strtotime($ev['event_time'])) : '' ?>
-          <?= $ev['location'] ? ' · '.h($ev['location']) : '' ?>
-        </div>
+        <?php endforeach; endif; ?>
       </div>
-      <?php endforeach; endif; ?>
-    </div>
+    </form>
   </div>
 </div>
 
 </div>
 
 <?php if (isOfficer()): ?>
+<!-- Single delete form -->
+<form method="POST" id="evDelForm" style="display:none">
+  <input type="hidden" name="action" value="delete">
+  <input type="hidden" name="id" id="evDelId" value="">
+</form>
+
+<!-- Add/Edit Modal -->
 <div class="xu-modal-overlay" id="xumodalEvent">
   <div class="xu-modal">
     <div class="xu-modal-header">
@@ -187,7 +226,7 @@ layout_head('Events & Calendar', 'events');
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Type</label>
-            <select id="ev_type" name="type" class="form-control">
+            <select id="ev_type" name="type" class="form-select">
               <option value="rehearsal">Rehearsal</option>
               <option value="performance">Performance</option>
               <option value="meeting">Meeting</option>
@@ -212,33 +251,51 @@ layout_head('Events & Calendar', 'events');
         </div>
         <div class="mt-3">
           <label class="form-label">Description</label>
-          <textarea id="ev_desc" name="description" class="form-control"></textarea>
+          <textarea id="ev_desc" name="description" class="form-control" rows="3"></textarea>
         </div>
       </div>
       <div class="xu-modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">Save Event</button>
       </div>
     </form>
   </div>
 </div>
+
 <script>
-function resetEventForm(){
-  document.getElementById('ev_action').value='create';
-  document.getElementById('eventModalTitle').textContent='Add Event';
-  ['id','title','date','time','loc','desc'].forEach(k=>{const el=document.getElementById('ev_'+k);if(el)el.value='';});
-  document.getElementById('ev_type').value='rehearsal';
+function resetEventForm() {
+  document.getElementById('ev_action').value = 'create';
+  document.getElementById('eventModalTitle').textContent = 'Add Event';
+  ['id','title','date','time','loc','desc'].forEach(k => { const el = document.getElementById('ev_'+k); if(el) el.value=''; });
+  document.getElementById('ev_type').value = 'rehearsal';
 }
-function fillEvent(e){
-  document.getElementById('ev_action').value='update';
-  document.getElementById('eventModalTitle').textContent='Edit Event';
-  document.getElementById('ev_id').value=e.id;
-  document.getElementById('ev_title').value=e.title;
-  document.getElementById('ev_type').value=e.type;
-  document.getElementById('ev_date').value=e.event_date;
-  document.getElementById('ev_time').value=e.event_time||'';
-  document.getElementById('ev_loc').value=e.location||'';
-  document.getElementById('ev_desc').value=e.description||'';
+function fillEvent(e) {
+  document.getElementById('ev_action').value = 'update';
+  document.getElementById('eventModalTitle').textContent = 'Edit Event';
+  document.getElementById('ev_id').value    = e.id;
+  document.getElementById('ev_title').value = e.title;
+  document.getElementById('ev_type').value  = e.type;
+  document.getElementById('ev_date').value  = e.event_date;
+  document.getElementById('ev_time').value  = e.event_time  || '';
+  document.getElementById('ev_loc').value   = e.location    || '';
+  document.getElementById('ev_desc').value  = e.description || '';
+}
+function evUpdateCount() {
+  const n = document.querySelectorAll('.ev-bulk-cb:checked').length;
+  document.getElementById('evBulkCount').textContent = n;
+  document.getElementById('evBulkBtn').classList.toggle('d-none', n === 0);
+}
+function evToggleAll() {
+  const cbs = document.querySelectorAll('.ev-bulk-cb');
+  const allChecked = [...cbs].every(c => c.checked);
+  cbs.forEach(c => c.checked = !allChecked);
+  evUpdateCount();
+}
+function evBulkDelete() {
+  const n = document.querySelectorAll('.ev-bulk-cb:checked').length;
+  if (!n) return;
+  if (!confirm('Delete ' + n + ' selected event(s)?')) return;
+  document.getElementById('bulkForm-events').submit();
 }
 </script>
 <?php endif; ?>
