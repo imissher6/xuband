@@ -96,7 +96,7 @@ layout_head('Events & Calendar', 'events');
         </a>
       </div>
       <?php if (isOfficer()): ?>
-      <button class="btn btn-primary btn-sm" data-modal="modalEvent" onclick="resetEventForm()">
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalEvent')" onclick="resetEventForm()">
         <i class="bi bi-plus-lg me-1"></i> Add Event
       </button>
       <?php endif; ?>
@@ -142,7 +142,7 @@ layout_head('Events & Calendar', 'events');
           <span class="badge badge-member"><?= h(ucfirst($ev['type'])) ?></span>
           <?php if (isOfficer()): ?>
           <div class="d-flex gap-1">
-            <button class="btn btn-xs btn-outline" data-modal="modalEvent"
+            <button class="btn btn-xs btn-outline" onclick="openModal('modalEvent')"
               onclick="fillEvent(<?= htmlspecialchars(json_encode($ev), ENT_QUOTES) ?>)">
               <i class="bi bi-pencil"></i>
             </button>
@@ -175,7 +175,7 @@ layout_head('Events & Calendar', 'events');
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title" id="eventModalTitle">Add Event</span>
-      <button class="modal-close" data-modal-close><i class="bi bi-x-lg"></i></button>
+      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST">
       <input type="hidden" name="action" id="ev_action" value="create">
@@ -217,7 +217,7 @@ layout_head('Events & Calendar', 'events');
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">Save Event</button>
       </div>
     </form>

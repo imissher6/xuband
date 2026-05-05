@@ -129,7 +129,7 @@ if ($folderId) {
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="card-title"><i class="bi bi-music-note-beamed me-2"></i>Files in this folder</span>
     <?php if (isOfficer()): ?>
-    <button class="btn btn-primary btn-sm" data-modal="modalUpload">
+    <button class="btn btn-primary btn-sm" onclick="openModal('modalUpload')">
       <i class="bi bi-upload me-1"></i> Upload File
     </button>
     <?php endif; ?>
@@ -173,7 +173,7 @@ if ($folderId) {
               <i class="bi bi-download me-1"></i>Download
             </a>
             <?php if (isOfficer()): ?>
-            <button class="btn btn-xs btn-outline" data-modal="modalAssign"
+            <button class="btn btn-xs btn-outline" onclick="openModal('modalAssign')"
               onclick="loadAssignments(<?= $sh['id'] ?>, <?= $folderId ?>, '<?= h(addslashes($sh['title'])) ?>')">
               <i class="bi bi-people"></i> Assign
             </button>
@@ -201,7 +201,7 @@ if ($folderId) {
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Upload File to <?= h($folder['name']) ?></span>
-      <button class="modal-close" data-modal-close><i class="bi bi-x-lg"></i></button>
+      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="action" value="upload_file">
@@ -222,7 +222,7 @@ if ($folderId) {
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Upload</button>
       </div>
     </form>
@@ -234,7 +234,7 @@ if ($folderId) {
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title" id="assignTitle">Manage Assignments</span>
-      <button class="modal-close" data-modal-close><i class="bi bi-x-lg"></i></button>
+      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST" id="assignForm">
       <input type="hidden" name="action" value="save_assignments">
@@ -256,7 +256,7 @@ if ($folderId) {
       <div class="modal-footer gap-2">
         <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllAssign(true)">Select All</button>
         <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllAssign(false)">None</button>
-        <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">Save</button>
       </div>
     </form>
@@ -316,7 +316,7 @@ function toggleAllAssign(val) {
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="card-title"><i class="bi bi-music-note-beamed me-2"></i>Music Sheet Library</span>
     <?php if (isOfficer()): ?>
-    <button class="btn btn-primary btn-sm" data-modal="modalFolder">
+    <button class="btn btn-primary btn-sm" onclick="openModal('modalFolder')">
       <i class="bi bi-folder-plus me-1"></i> New Folder
     </button>
     <?php endif; ?>
@@ -365,7 +365,7 @@ function toggleAllAssign(val) {
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Create Folder</span>
-      <button class="modal-close" data-modal-close><i class="bi bi-x-lg"></i></button>
+      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST">
       <input type="hidden" name="action" value="create_folder">
@@ -380,7 +380,7 @@ function toggleAllAssign(val) {
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-folder-plus me-1"></i>Create Folder
         </button>

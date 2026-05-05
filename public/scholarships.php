@@ -104,7 +104,7 @@ layout_head('Scholarships', 'scholarships');
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
   <h2 class="mb-0" style="color:var(--navy)"><i class="bi bi-award me-2"></i>Scholarship Records</h2>
   <?php if (isOfficer()): ?>
-  <button class="btn btn-primary btn-sm" data-modal="modalSY">
+  <button class="btn btn-primary btn-sm" onclick="openModal('modalSY')">
     <i class="bi bi-plus-lg me-1"></i> Create School Year
   </button>
   <?php else: ?>
@@ -233,7 +233,7 @@ layout_head('Scholarships', 'scholarships');
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Create School Year</span>
-      <button class="modal-close" data-modal-close><i class="bi bi-x-lg"></i></button>
+      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST">
       <input type="hidden" name="action" value="create_school_year">
@@ -245,7 +245,7 @@ layout_head('Scholarships', 'scholarships');
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-plus-lg me-1"></i>Create
         </button>

@@ -63,7 +63,7 @@ layout_head('Announcements', 'announcements');
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="card-title"><i class="bi bi-megaphone me-2"></i>Announcements</span>
     <?php if (isOfficer()): ?>
-    <button class="btn btn-primary btn-sm" data-modal="modalAnn" onclick="resetAnnForm()">
+    <button class="btn btn-primary btn-sm" onclick="openModal('modalAnn')" onclick="resetAnnForm()">
       <i class="bi bi-plus-lg me-1"></i> Post Announcement
     </button>
     <?php endif; ?>
@@ -86,7 +86,7 @@ layout_head('Announcements', 'announcements');
         </div>
         <?php if (isOfficer()): ?>
         <div class="d-flex gap-2">
-          <button class="btn btn-xs btn-outline" data-modal="modalAnn"
+          <button class="btn btn-xs btn-outline" onclick="openModal('modalAnn')"
             onclick="fillAnn(<?= htmlspecialchars(json_encode($ann), ENT_QUOTES) ?>)">
             <i class="bi bi-pencil"></i> Edit
           </button>
@@ -118,7 +118,7 @@ layout_head('Announcements', 'announcements');
   <div class="modal" style="max-width:640px">
     <div class="modal-header">
       <span class="modal-title" id="annModalTitle">Post Announcement</span>
-      <button class="modal-close" data-modal-close><i class="bi bi-x-lg"></i></button>
+      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST">
       <input type="hidden" name="action" id="ann_action" value="create">
@@ -146,7 +146,7 @@ layout_head('Announcements', 'announcements');
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">Post</button>
       </div>
     </form>
