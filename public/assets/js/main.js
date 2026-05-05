@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   window.closeModal = function (el) {
-    const overlay = el.closest('.modal-overlay');
+    const overlay = el.closest('.xu-modal-overlay');
     if (overlay) { overlay.classList.remove('open'); document.body.style.overflow = ''; }
   };
 
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // Close by clicking overlay backdrop
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  document.querySelectorAll('.xu-modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', e => {
       if (e.target === overlay) { overlay.classList.remove('open'); document.body.style.overflow = ''; }
     });

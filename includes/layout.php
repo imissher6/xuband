@@ -107,12 +107,11 @@ function openModal(id) {
   if (el) { el.classList.add('open'); document.body.style.overflow = 'hidden'; }
 }
 function closeModal(btn) {
-  var overlay = btn.closest('.modal-overlay');
+  var overlay = btn.closest('.xu-modal-overlay');
   if (overlay) { overlay.classList.remove('open'); document.body.style.overflow = ''; }
 }
-// Close on backdrop click
 document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('modal-overlay')) {
+  if (e.target.classList.contains('xu-modal-overlay')) {
     e.target.classList.remove('open'); document.body.style.overflow = '';
   }
 });

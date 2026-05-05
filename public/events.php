@@ -96,7 +96,7 @@ layout_head('Events & Calendar', 'events');
         </a>
       </div>
       <?php if (isOfficer()): ?>
-      <button class="btn btn-primary btn-sm" onclick="openModal('modalEvent')" onclick="resetEventForm()">
+      <button class="btn btn-primary btn-sm" onclick="openModal('xumodalEvent')" onclick="resetEventForm()">
         <i class="bi bi-plus-lg me-1"></i> Add Event
       </button>
       <?php endif; ?>
@@ -142,7 +142,7 @@ layout_head('Events & Calendar', 'events');
           <span class="badge badge-member"><?= h(ucfirst($ev['type'])) ?></span>
           <?php if (isOfficer()): ?>
           <div class="d-flex gap-1">
-            <button class="btn btn-xs btn-outline" onclick="openModal('modalEvent')"
+            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalEvent')"
               onclick="fillEvent(<?= htmlspecialchars(json_encode($ev), ENT_QUOTES) ?>)">
               <i class="bi bi-pencil"></i>
             </button>
@@ -171,16 +171,16 @@ layout_head('Events & Calendar', 'events');
 </div>
 
 <?php if (isOfficer()): ?>
-<div class="modal-overlay" id="modalEvent">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="eventModalTitle">Add Event</span>
-      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
+<div class="xu-modal-overlay" id="xumodalEvent">
+  <div class="xu-modal">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title" id="eventModalTitle">Add Event</span>
+      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST">
       <input type="hidden" name="action" id="ev_action" value="create">
       <input type="hidden" name="id"     id="ev_id"     value="">
-      <div class="modal-body">
+      <div class="xu-modal-body">
         <div class="mb-3">
           <label class="form-label">Title *</label>
           <input id="ev_title" name="title" class="form-control" required>
@@ -216,7 +216,7 @@ layout_head('Events & Calendar', 'events');
           <textarea id="ev_desc" name="description" class="form-control"></textarea>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="xu-modal-footer">
         <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">Save Event</button>
       </div>

@@ -129,7 +129,7 @@ if ($folderId) {
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="card-title"><i class="bi bi-music-note-beamed me-2"></i>Files in this folder</span>
     <?php if (isOfficer()): ?>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modalUpload')">
+    <button class="btn btn-primary btn-sm" onclick="openModal('xumodalUpload')">
       <i class="bi bi-upload me-1"></i> Upload File
     </button>
     <?php endif; ?>
@@ -173,7 +173,7 @@ if ($folderId) {
               <i class="bi bi-download me-1"></i>Download
             </a>
             <?php if (isOfficer()): ?>
-            <button class="btn btn-xs btn-outline" onclick="openModal('modalAssign')"
+            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalAssign')"
               onclick="loadAssignments(<?= $sh['id'] ?>, <?= $folderId ?>, '<?= h(addslashes($sh['title'])) ?>')">
               <i class="bi bi-people"></i> Assign
             </button>
@@ -197,16 +197,16 @@ if ($folderId) {
 
 <?php if (isOfficer()): ?>
 <!-- Upload Modal -->
-<div class="modal-overlay" id="modalUpload">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Upload File to <?= h($folder['name']) ?></span>
-      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
+<div class="xu-modal-overlay" id="xumodalUpload">
+  <div class="xu-modal">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title">Upload File to <?= h($folder['name']) ?></span>
+      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="action" value="upload_file">
       <input type="hidden" name="folder_id" value="<?= $folderId ?>">
-      <div class="modal-body">
+      <div class="xu-modal-body">
         <div class="mb-3">
           <label class="form-label">File *</label>
           <input name="file" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.gif,.mp3" required>
@@ -221,7 +221,7 @@ if ($folderId) {
           <input name="instrument" class="form-control" placeholder="e.g. Trumpet, Saxophone, Flute…">
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="xu-modal-footer">
         <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Upload</button>
       </div>
@@ -230,17 +230,17 @@ if ($folderId) {
 </div>
 
 <!-- Assign Modal -->
-<div class="modal-overlay" id="modalAssign">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="assignTitle">Manage Assignments</span>
-      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
+<div class="xu-modal-overlay" id="xumodalAssign">
+  <div class="xu-modal">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title" id="assignTitle">Manage Assignments</span>
+      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST" id="assignForm">
       <input type="hidden" name="action" value="save_assignments">
       <input type="hidden" name="sheet_id" id="assign_sheet_id" value="">
       <input type="hidden" name="folder_id" id="assign_folder_id" value="">
-      <div class="modal-body">
+      <div class="xu-modal-body">
         <p class="small text-muted mb-3">Select which members can see and download this sheet:</p>
         <div id="assignMemberList">
           <?php foreach ($allMembers as $m): ?>
@@ -316,7 +316,7 @@ function toggleAllAssign(val) {
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="card-title"><i class="bi bi-music-note-beamed me-2"></i>Music Sheet Library</span>
     <?php if (isOfficer()): ?>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modalFolder')">
+    <button class="btn btn-primary btn-sm" onclick="openModal('xumodalFolder')">
       <i class="bi bi-folder-plus me-1"></i> New Folder
     </button>
     <?php endif; ?>
@@ -361,15 +361,15 @@ function toggleAllAssign(val) {
 </div>
 
 <?php if (isOfficer()): ?>
-<div class="modal-overlay" id="modalFolder">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Create Folder</span>
-      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
+<div class="xu-modal-overlay" id="xumodalFolder">
+  <div class="xu-modal">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title">Create Folder</span>
+      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST">
       <input type="hidden" name="action" value="create_folder">
-      <div class="modal-body">
+      <div class="xu-modal-body">
         <div class="mb-3">
           <label class="form-label">Folder Name *</label>
           <input name="name" class="form-control" placeholder="e.g. ABBA Medley, Competition 2025…" required>
@@ -379,7 +379,7 @@ function toggleAllAssign(val) {
           <textarea name="description" class="form-control" rows="2"></textarea>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="xu-modal-footer">
         <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-folder-plus me-1"></i>Create Folder

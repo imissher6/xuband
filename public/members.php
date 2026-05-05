@@ -89,7 +89,7 @@ layout_head('Members', 'members');
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="card-title"><i class="bi bi-people me-2"></i>Band Members</span>
-    <button class="btn btn-primary btn-sm" onclick="openModal('modalAdd')">
+    <button class="btn btn-primary btn-sm" onclick="openModal('xumodalAdd')">
       <i class="bi bi-person-plus me-1"></i> Add Member
     </button>
   </div>
@@ -119,7 +119,7 @@ layout_head('Members', 'members');
           <td><?= statusBadge($m['status']) ?></td>
           <td class="<?= penaltyColor((float)$m['penalty_points']) ?> fw-bold"><?= $m['penalty_points'] ?></td>
           <td>
-            <button class="btn btn-xs btn-outline" onclick="openModal('modalEdit')"
+            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalEdit')"
               onclick="fillEdit(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)">
               <i class="bi bi-pencil"></i> Edit
             </button>
@@ -149,15 +149,15 @@ layout_head('Members', 'members');
 </div>
 
 <!-- Add Modal -->
-<div class="modal-overlay" id="modalAdd">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title"><i class="bi bi-person-plus me-2"></i>Add Member</span>
-      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
+<div class="xu-modal-overlay" id="xumodalAdd">
+  <div class="xu-modal">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title"><i class="bi bi-person-plus me-2"></i>Add Member</span>
+      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST">
       <input type="hidden" name="action" value="create">
-      <div class="modal-body">
+      <div class="xu-modal-body">
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Full Name *</label>
@@ -203,7 +203,7 @@ layout_head('Members', 'members');
           </div>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="xu-modal-footer">
         <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-person-plus me-1"></i>Add Member
@@ -214,16 +214,16 @@ layout_head('Members', 'members');
 </div>
 
 <!-- Edit Modal -->
-<div class="modal-overlay" id="modalEdit">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Member</span>
-      <button class="modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
+<div class="xu-modal-overlay" id="xumodalEdit">
+  <div class="xu-modal">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title"><i class="bi bi-pencil me-2"></i>Edit Member</span>
+      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
     </div>
     <form method="POST">
       <input type="hidden" name="action" value="update">
       <input type="hidden" name="id" id="edit_id">
-      <div class="modal-body">
+      <div class="xu-modal-body">
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Full Name *</label>
@@ -272,7 +272,7 @@ layout_head('Members', 'members');
           </div>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="xu-modal-footer">
         <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-floppy me-1"></i>Save Changes
