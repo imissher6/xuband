@@ -119,8 +119,7 @@ layout_head('Members', 'members');
           <td><?= statusBadge($m['status']) ?></td>
           <td class="<?= penaltyColor((float)$m['penalty_points']) ?> fw-bold"><?= $m['penalty_points'] ?></td>
           <td>
-            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalEdit')"
-              onclick="fillEdit(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)">
+            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalEdit'); fillEdit(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)">
               <i class="bi bi-pencil"></i> Edit
             </button>
             <?php if ($m['id'] !== $user['id']): ?>

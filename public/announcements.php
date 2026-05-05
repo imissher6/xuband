@@ -63,7 +63,7 @@ layout_head('Announcements', 'announcements');
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="card-title"><i class="bi bi-megaphone me-2"></i>Announcements</span>
     <?php if (isOfficer()): ?>
-    <button class="btn btn-primary btn-sm" onclick="openModal('xumodalAnn')" onclick="resetAnnForm()">
+    <button class="btn btn-primary btn-sm" onclick="openModal('xumodalAnn'); resetAnnForm()">
       <i class="bi bi-plus-lg me-1"></i> Post Announcement
     </button>
     <?php endif; ?>
@@ -86,8 +86,7 @@ layout_head('Announcements', 'announcements');
         </div>
         <?php if (isOfficer()): ?>
         <div class="d-flex gap-2">
-          <button class="btn btn-xs btn-outline" onclick="openModal('xumodalAnn')"
-            onclick="fillAnn(<?= htmlspecialchars(json_encode($ann), ENT_QUOTES) ?>)">
+          <button class="btn btn-xs btn-outline" onclick="openModal('xumodalAnn'); fillAnn(<?= htmlspecialchars(json_encode($ann), ENT_QUOTES) ?>)">
             <i class="bi bi-pencil"></i> Edit
           </button>
           <form method="POST" style="display:inline">
@@ -115,7 +114,7 @@ layout_head('Announcements', 'announcements');
 
 <?php if (isOfficer()): ?>
 <div class="xu-modal-overlay" id="xumodalAnn">
-  <div class="modal" style="max-width:640px">
+  <div class="xu-modal" style="max-width:640px">
     <div class="xu-modal-header">
       <span class="xu-modal-title" id="annModalTitle">Post Announcement</span>
       <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>

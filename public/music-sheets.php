@@ -173,8 +173,7 @@ if ($folderId) {
               <i class="bi bi-download me-1"></i>Download
             </a>
             <?php if (isOfficer()): ?>
-            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalAssign')"
-              onclick="loadAssignments(<?= $sh['id'] ?>, <?= $folderId ?>, '<?= h(addslashes($sh['title'])) ?>')">
+            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalAssign'); loadAssignments(<?= $sh['id'] ?>, <?= $folderId ?>, '<?= h(addslashes($sh['title'])) ?>')">
               <i class="bi bi-people"></i> Assign
             </button>
             <form method="POST" style="display:inline">

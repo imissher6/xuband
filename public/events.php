@@ -142,8 +142,7 @@ layout_head('Events & Calendar', 'events');
           <span class="badge badge-member"><?= h(ucfirst($ev['type'])) ?></span>
           <?php if (isOfficer()): ?>
           <div class="d-flex gap-1">
-            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalEvent')"
-              onclick="fillEvent(<?= htmlspecialchars(json_encode($ev), ENT_QUOTES) ?>)">
+            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalEvent'); fillEvent(<?= htmlspecialchars(json_encode($ev), ENT_QUOTES) ?>)">
               <i class="bi bi-pencil"></i>
             </button>
             <form method="POST" style="display:inline">
