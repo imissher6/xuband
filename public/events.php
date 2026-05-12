@@ -71,7 +71,7 @@ $monthName   = date('F Y', $firstDay);
 $prevMonth = $month-1; $prevYear = $year; if ($prevMonth<1) { $prevMonth=12; $prevYear--; }
 $nextMonth = $month+1; $nextYear = $year; if ($nextMonth>12){ $nextMonth=1;  $nextYear++; }
 
-layout_head('Events & Calendar', 'events');
+layout_head('Events Calendar', 'events');
 ?>
 
 <?php if ($e = getFlash('error')): ?>
@@ -82,12 +82,6 @@ layout_head('Events & Calendar', 'events');
 <?php if ($s = getFlash('success')): ?>
 <div class="alert alert-success d-flex align-items-center gap-2" data-auto-dismiss>
   <i class="bi bi-check-circle-fill"></i> <?= h($s) ?>
-</div>
-<?php endif; ?>
-
-<?php if (!isOfficer()): ?>
-<div class="alert alert-info d-flex align-items-center gap-2">
-  <i class="bi bi-info-circle-fill"></i> You can view events. Contact an officer to add or modify events.
 </div>
 <?php endif; ?>
 
@@ -124,7 +118,11 @@ layout_head('Events & Calendar', 'events');
         <div class="cal-day <?= $isToday?'today':'' ?>">
           <div class="cal-day-num"><?= $d ?></div>
           <?php foreach ($eventsByDay[$d] ?? [] as $ev): ?>
-          <span class="cal-event-dot <?= h($ev['type']) ?>" title="<?= h($ev['title']) ?>"><?= h($ev['title']) ?></span>
+          <span class="cal-event-dot <?= h($ev['type']) ?>"
+            onclick="viewEvent(<?= htmlspecialchars(json_encode($ev), ENT_QUOTES) ?>)"
+            title="<?= h($ev['title']) ?>"
+            role="button" tabindex="0"
+            style="cursor:pointer"><?= h($ev['title']) ?></span>
           <?php endforeach; ?>
         </div>
         <?php endfor; ?>
@@ -133,13 +131,14 @@ layout_head('Events & Calendar', 'events');
         <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:var(--xu-navy);border-radius:2px"></span>Rehearsal</span>
         <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:#7c3aed;border-radius:2px"></span>Performance</span>
         <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:#16a34a;border-radius:2px"></span>Meeting</span>
+        <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:#dc3545;border-radius:2px"></span>Competition</span>
         <span><span class="d-inline-block me-1" style="width:10px;height:10px;background:var(--xu-gold);border-radius:2px"></span>Other</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Event List with bulk -->
+<!-- Event List -->
 <div class="col-lg-4">
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -163,20 +162,26 @@ layout_head('Events & Calendar', 'events');
         <div class="empty-state"><div class="empty-icon"><i class="bi bi-calendar-x"></i></div><p>No events yet.</p></div>
         <?php else: foreach ($allEvents as $ev):
           $isPast = strtotime($ev['event_date']) < strtotime(date('Y-m-d'));
+          $evJson = htmlspecialchars(json_encode($ev), ENT_QUOTES);
         ?>
-        <div class="px-3 py-2 border-bottom <?= $isPast ? 'opacity-50' : '' ?>">
-          <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
+        <div class="px-3 py-2 border-bottom <?= $isPast ? 'opacity-50' : '' ?>"
+             style="cursor:pointer"
+             onclick="viewEvent(<?= $evJson ?>)"
+             role="button" tabindex="0">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1"
+               onclick="event.stopPropagation()">
             <div class="d-flex align-items-center gap-2">
               <?php if (isOfficer()): ?>
               <input type="checkbox" name="ids[]" value="<?= $ev['id'] ?>"
-                class="form-check-input ev-bulk-cb" onchange="evUpdateCount()">
+                class="form-check-input ev-bulk-cb" onchange="evUpdateCount()"
+                onclick="event.stopPropagation()">
               <?php endif; ?>
               <span class="badge bg-secondary"><?= h(ucfirst($ev['type'])) ?></span>
             </div>
             <?php if (isOfficer()): ?>
-            <div class="d-flex gap-1">
+            <div class="d-flex gap-1" onclick="event.stopPropagation()">
               <button type="button" class="btn btn-xs btn-outline-secondary"
-                onclick="openModal('xumodalEvent'); fillEvent(<?= htmlspecialchars(json_encode($ev), ENT_QUOTES) ?>)">
+                onclick="openModal('xumodalEvent'); fillEvent(<?= $evJson ?>)">
                 <i class="bi bi-pencil"></i>
               </button>
               <button type="button" class="btn btn-xs btn-outline-danger"
@@ -199,6 +204,52 @@ layout_head('Events & Calendar', 'events');
   </div>
 </div>
 
+</div>
+
+<!-- Event Detail View Modal (all users) -->
+<div class="xu-modal-overlay" id="xumodalEventView">
+  <div class="xu-modal" style="max-width:560px">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title" id="evViewTitle">Event Details</span>
+      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="xu-modal-body">
+      <div class="mb-3">
+        <span id="evViewTypeBadge" class="badge bg-secondary me-2"></span>
+      </div>
+      <div class="row g-3">
+        <div class="col-6">
+          <div class="text-muted small">Date</div>
+          <div class="fw-bold" id="evViewDate"></div>
+        </div>
+        <div class="col-6">
+          <div class="text-muted small">Time</div>
+          <div class="fw-bold" id="evViewTime"></div>
+        </div>
+        <div class="col-6">
+          <div class="text-muted small">Location</div>
+          <div class="fw-bold" id="evViewLocation"></div>
+        </div>
+        <div class="col-6">
+          <div class="text-muted small">Organizer</div>
+          <div class="fw-bold" id="evViewOrganizer"></div>
+        </div>
+      </div>
+      <div id="evViewDescWrap" class="mt-3" style="display:none">
+        <div class="text-muted small mb-1">Description</div>
+        <p id="evViewDesc" style="white-space:pre-line;line-height:1.7;color:var(--text)"></p>
+      </div>
+    </div>
+    <div class="xu-modal-footer">
+      <?php if (isOfficer()): ?>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="evViewEditBtn"
+        onclick="openModal('xumodalEvent'); fillEvent(window._viewingEvent)">
+        <i class="bi bi-pencil me-1"></i>Edit
+      </button>
+      <?php endif; ?>
+      <button type="button" class="btn btn-outline-secondary" onclick="closeModal(this)">Close</button>
+    </div>
+  </div>
 </div>
 
 <?php if (isOfficer()): ?>
@@ -261,8 +312,32 @@ layout_head('Events & Calendar', 'events');
     </form>
   </div>
 </div>
+<?php endif; ?>
 
 <script>
+window._viewingEvent = null;
+function viewEvent(e) {
+  window._viewingEvent = e;
+  document.getElementById('evViewTitle').textContent   = e.title;
+  document.getElementById('evViewTypeBadge').textContent = (e.type||'').charAt(0).toUpperCase()+(e.type||'').slice(1);
+  document.getElementById('evViewDate').textContent     = e.event_date || '—';
+  document.getElementById('evViewTime').textContent     = e.event_time ? formatTime12(e.event_time) : '—';
+  document.getElementById('evViewLocation').textContent = e.location || '—';
+  document.getElementById('evViewOrganizer').textContent = e.organizer || '—';
+  var descWrap = document.getElementById('evViewDescWrap');
+  var descEl   = document.getElementById('evViewDesc');
+  if (e.description) { descEl.textContent = e.description; descWrap.style.display = ''; }
+  else { descWrap.style.display = 'none'; }
+  openModal('xumodalEventView');
+}
+function formatTime12(t) {
+  if (!t) return '—';
+  var parts = t.split(':');
+  var h = parseInt(parts[0]), m = parts[1];
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + m + ' ' + ampm;
+}
 function resetEventForm() {
   document.getElementById('ev_action').value = 'create';
   document.getElementById('eventModalTitle').textContent = 'Add Event';
@@ -279,6 +354,9 @@ function fillEvent(e) {
   document.getElementById('ev_time').value  = e.event_time  || '';
   document.getElementById('ev_loc').value   = e.location    || '';
   document.getElementById('ev_desc').value  = e.description || '';
+  // Close view modal if open, open edit modal
+  document.querySelectorAll('.xu-modal-overlay.open').forEach(m => m.classList.remove('open'));
+  openModal('xumodalEvent');
 }
 function evUpdateCount() {
   const n = document.querySelectorAll('.ev-bulk-cb:checked').length;
@@ -297,7 +375,14 @@ function evBulkDelete() {
   if (!confirm('Delete ' + n + ' selected event(s)?')) return;
   document.getElementById('bulkForm-events').submit();
 }
+// Keyboard accessibility
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[role=button]').forEach(function(el) {
+    el.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+    });
+  });
+});
 </script>
-<?php endif; ?>
 
 <?php layout_foot(); ?>

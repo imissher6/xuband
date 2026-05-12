@@ -3,48 +3,58 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/layout.php';
-requireRole(['moderator','officer']);
+requireRole(['moderator']); // Only moderators can manage members
 $user = currentUser();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'create') {
-        $name     = trim($_POST['name'] ?? '');
-        $email    = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? 'password';
-        $role     = $_POST['role'] ?? 'member';
-        $instr    = trim($_POST['instrument'] ?? '');
-        $yr       = trim($_POST['year_level'] ?? '');
-        $sid      = trim($_POST['student_id'] ?? '');
-        $contact  = trim($_POST['contact_number'] ?? '');
-        if ($role === 'moderator' && $user['role'] !== 'moderator') $role = 'member';
+        $name       = trim($_POST['name'] ?? '');
+        $email      = trim($_POST['email'] ?? '');
+        $password   = $_POST['password'] ?? 'password';
+        $role       = $_POST['role'] ?? 'member';
+        $instr      = trim($_POST['instrument'] ?? '');
+        $yr         = trim($_POST['year_level'] ?? '');
+        $sid        = trim($_POST['student_id'] ?? '');
+        $contact    = trim($_POST['contact_number'] ?? '');
+        $scholarship= $_POST['scholarship_status'] ?? 'Not Scholar';
+        // Prevent creating moderators via this form (safety)
+        if ($role === 'moderator') $role = 'member';
 
         if (!$name || !$email) { flash('error', 'Name and email are required.'); redirect('/members.php'); }
         $exists = dbQueryOne('SELECT id FROM users WHERE email = ?', [$email]);
         if ($exists) { flash('error', 'Email already in use.'); redirect('/members.php'); }
 
         $hash = password_hash($password, PASSWORD_BCRYPT);
-        dbInsert('INSERT INTO users (name,email,password_hash,role,instrument,year_level,student_id,contact_number) VALUES (?,?,?,?,?,?,?,?)',
-            [$name,$email,$hash,$role,$instr,$yr,$sid,$contact]);
+        dbInsert('INSERT INTO users (name,email,password_hash,role,instrument,year_level,student_id,contact_number,scholarship_status) VALUES (?,?,?,?,?,?,?,?,?)',
+            [$name,$email,$hash,$role,$instr,$yr,$sid,$contact,$scholarship]);
         flash('success', "Member $name added.");
         redirect('/members.php');
     }
 
     if ($action === 'update') {
-        $id   = (int)($_POST['id'] ?? 0);
-        $name = trim($_POST['name'] ?? '');
-        $email= trim($_POST['email'] ?? '');
-        $role = $_POST['role'] ?? 'member';
-        $instr= trim($_POST['instrument'] ?? '');
-        $yr   = trim($_POST['year_level'] ?? '');
-        $sid  = trim($_POST['student_id'] ?? '');
-        $contact = trim($_POST['contact_number'] ?? '');
-        $status  = $_POST['status'] ?? 'active';
-        if ($role === 'moderator' && $user['role'] !== 'moderator') $role = 'member';
+        $id          = (int)($_POST['id'] ?? 0);
+        $name        = trim($_POST['name'] ?? '');
+        $email       = trim($_POST['email'] ?? '');
+        $role        = $_POST['role'] ?? 'member';
+        $instr       = trim($_POST['instrument'] ?? '');
+        $yr          = trim($_POST['year_level'] ?? '');
+        $sid         = trim($_POST['student_id'] ?? '');
+        $contact     = trim($_POST['contact_number'] ?? '');
+        $status      = $_POST['status'] ?? 'active';
+        $scholarship = $_POST['scholarship_status'] ?? 'Not Scholar';
 
-        dbExecute('UPDATE users SET name=?,email=?,role=?,instrument=?,year_level=?,student_id=?,contact_number=?,status=? WHERE id=?',
-            [$name,$email,$role,$instr,$yr,$sid,$contact,$status,$id]);
+        // Cannot promote to moderator, and cannot demote a moderator
+        $target = dbQueryOne('SELECT role FROM users WHERE id=?', [$id]);
+        if ($target && $target['role'] === 'moderator') {
+            flash('error', 'Cannot edit a Moderator account.');
+            redirect('/members.php');
+        }
+        if ($role === 'moderator') $role = 'member';
+
+        dbExecute('UPDATE users SET name=?,email=?,role=?,instrument=?,year_level=?,student_id=?,contact_number=?,status=?,scholarship_status=? WHERE id=?',
+            [$name,$email,$role,$instr,$yr,$sid,$contact,$status,$scholarship,$id]);
         flash('success', 'Member updated.');
         redirect('/members.php');
     }
@@ -52,6 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
         if ($id === $user['id']) { flash('error', 'Cannot delete yourself.'); redirect('/members.php'); }
+        // Cannot delete moderators
+        $target = dbQueryOne('SELECT role FROM users WHERE id=?', [$id]);
+        if ($target && $target['role'] === 'moderator') {
+            flash('error', 'Cannot remove a Moderator account.');
+            redirect('/members.php');
+        }
         dbExecute('DELETE FROM users WHERE id = ?', [$id]);
         flash('success', 'Member removed.');
         redirect('/members.php');
@@ -67,9 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Exclude moderators from the listing (shown only in management context)
 $members = dbQuery('SELECT u.*, COALESCE(ps.total_points,0) AS penalty_points
     FROM users u
     LEFT JOIN penalty_summary ps ON ps.user_id = u.id
+    WHERE u.role != "moderator"
     ORDER BY u.role ASC, u.name ASC');
 
 layout_head('Members', 'members');
@@ -88,7 +106,7 @@ layout_head('Members', 'members');
 
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="card-title"><i class="bi bi-people me-2"></i>Band Members</span>
+    <span class="card-title"><i class="bi bi-people me-2"></i>Members Management</span>
     <button class="btn btn-primary btn-sm" onclick="openModal('xumodalAdd')">
       <i class="bi bi-person-plus me-1"></i> Add Member
     </button>
@@ -104,7 +122,7 @@ layout_head('Members', 'members');
       <thead>
         <tr>
           <th>Name</th><th>Email</th><th>Role</th><th>Instrument</th>
-          <th>Year</th><th>Student ID</th><th>Status</th><th>Penalty Pts</th><th>Actions</th>
+          <th>Year</th><th>Student ID</th><th>Status</th><th>Scholarship</th><th>Penalty Pts</th><th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -117,16 +135,17 @@ layout_head('Members', 'members');
           <td><?= h($m['year_level'] ?: '—') ?></td>
           <td class="small"><?= h($m['student_id'] ?: '—') ?></td>
           <td><?= statusBadge($m['status']) ?></td>
+          <td><?= scholarshipBadge($m['scholarship_status'] ?? 'Not Scholar') ?></td>
           <td class="<?= penaltyColor((float)$m['penalty_points']) ?> fw-bold"><?= $m['penalty_points'] ?></td>
           <td>
-            <button class="btn btn-xs btn-outline" onclick="openModal('xumodalEdit'); fillEdit(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)">
+            <button class="btn btn-xs btn-outline-secondary" onclick="openModal('xumodalEdit'); fillEdit(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)">
               <i class="bi bi-pencil"></i> Edit
             </button>
             <?php if ($m['id'] !== $user['id']): ?>
             <form method="POST" style="display:inline">
               <input type="hidden" name="action" value="delete">
               <input type="hidden" name="id" value="<?= $m['id'] ?>">
-              <button type="submit" class="btn btn-xs btn-danger" data-confirm="Delete <?= h($m['name']) ?>?">
+              <button type="submit" class="btn btn-xs btn-outline-danger" data-confirm="Remove <?= h($m['name']) ?>?">
                 <i class="bi bi-trash"></i>
               </button>
             </form>
@@ -135,7 +154,7 @@ layout_head('Members', 'members');
         </tr>
         <?php endforeach; ?>
         <?php if (!$members): ?>
-        <tr><td colspan="9">
+        <tr><td colspan="10">
           <div class="empty-state">
             <div class="empty-icon"><i class="bi bi-people"></i></div>
             <p>No members yet.</p>
@@ -149,7 +168,7 @@ layout_head('Members', 'members');
 
 <!-- Add Modal -->
 <div class="xu-modal-overlay" id="xumodalAdd">
-  <div class="xu-modal">
+  <div class="xu-modal" style="max-width:620px">
     <div class="xu-modal-header">
       <span class="xu-modal-title"><i class="bi bi-person-plus me-2"></i>Add Member</span>
       <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
@@ -175,9 +194,8 @@ layout_head('Members', 'members');
           <div class="col-md-6">
             <label class="form-label">Role</label>
             <select name="role" class="form-control">
-              <option value="member">Member</option>
+              <option value="member">Band Member</option>
               <option value="officer">Officer</option>
-              <?php if ($user['role'] === 'moderator'): ?><option value="moderator">Moderator</option><?php endif; ?>
             </select>
           </div>
         </div>
@@ -201,9 +219,17 @@ layout_head('Members', 'members');
             <input name="contact_number" class="form-control">
           </div>
         </div>
+        <div class="mt-3">
+          <label class="form-label">Scholarship Status</label>
+          <select name="scholarship_status" class="form-control">
+            <option value="Not Scholar">Not Scholar</option>
+            <option value="Half Scholar">Half Scholar</option>
+            <option value="Full Scholar">Full Scholar</option>
+          </select>
+        </div>
       </div>
       <div class="xu-modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-person-plus me-1"></i>Add Member
         </button>
@@ -214,7 +240,7 @@ layout_head('Members', 'members');
 
 <!-- Edit Modal -->
 <div class="xu-modal-overlay" id="xumodalEdit">
-  <div class="xu-modal">
+  <div class="xu-modal" style="max-width:620px">
     <div class="xu-modal-header">
       <span class="xu-modal-title"><i class="bi bi-pencil me-2"></i>Edit Member</span>
       <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
@@ -237,9 +263,8 @@ layout_head('Members', 'members');
           <div class="col-md-6">
             <label class="form-label">Role</label>
             <select id="edit_role" name="role" class="form-control">
-              <option value="member">Member</option>
+              <option value="member">Band Member</option>
               <option value="officer">Officer</option>
-              <?php if ($user['role'] === 'moderator'): ?><option value="moderator">Moderator</option><?php endif; ?>
             </select>
           </div>
           <div class="col-md-6">
@@ -270,9 +295,17 @@ layout_head('Members', 'members');
             <input id="edit_contact_number" name="contact_number" class="form-control">
           </div>
         </div>
+        <div class="mt-3">
+          <label class="form-label">Scholarship Status</label>
+          <select id="edit_scholarship_status" name="scholarship_status" class="form-control">
+            <option value="Not Scholar">Not Scholar</option>
+            <option value="Half Scholar">Half Scholar</option>
+            <option value="Full Scholar">Full Scholar</option>
+          </select>
+        </div>
       </div>
       <div class="xu-modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="closeModal(this)">Cancel</button>
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-floppy me-1"></i>Save Changes
         </button>
@@ -283,11 +316,22 @@ layout_head('Members', 'members');
 
 <script>
 function fillEdit(m) {
-  ['id','name','email','role','status','instrument','year_level','student_id','contact_number'].forEach(k => {
+  ['id','name','email','role','status','instrument','year_level','student_id','contact_number','scholarship_status'].forEach(k => {
     const el = document.getElementById('edit_' + k);
-    if (el) el.value = m[k] || '';
+    if (el) el.value = m[k] || (k === 'scholarship_status' ? 'Not Scholar' : '');
   });
 }
+// Live search
+document.addEventListener('DOMContentLoaded', function() {
+  const inp = document.getElementById('tableSearch');
+  if (!inp) return;
+  inp.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('[data-searchable] tbody tr').forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+});
 </script>
 
 <?php layout_foot(); ?>

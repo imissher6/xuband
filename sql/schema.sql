@@ -15,9 +15,15 @@ CREATE TABLE IF NOT EXISTS users (
     contact_number VARCHAR(20) DEFAULT NULL,
     status ENUM('active','inactive') NOT NULL DEFAULT 'active',
     profile_notes TEXT DEFAULT NULL,
+    avatar_path VARCHAR(255) DEFAULT NULL,
+    scholarship_status ENUM('Not Scholar','Half Scholar','Full Scholar') NOT NULL DEFAULT 'Not Scholar',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- Migrations: safe to run on existing databases (ignored if column already exists)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_path VARCHAR(255) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS scholarship_status ENUM('Not Scholar','Half Scholar','Full Scholar') NOT NULL DEFAULT 'Not Scholar';
 
 -- Events
 CREATE TABLE IF NOT EXISTS events (

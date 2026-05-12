@@ -9,6 +9,11 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
     $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
     $isActive = fn(string $key) => ($key === $currentPage || $key === $pageKey) ? ' active' : '';
+
+    // Avatar
+    $profile = \dbQueryOne('SELECT avatar_path FROM users WHERE id = ?', [$user['id']]);
+    $avatarPath = $profile['avatar_path'] ?? '';
+    $hasAvatar = !empty($avatarPath) && file_exists(__DIR__ . '/../public' . $avatarPath);
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -37,7 +42,7 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
       <i class="bi bi-megaphone"></i> Announcements
     </a>
     <a href="/events.php" class="sidebar-link<?= $isActive('events') ?>">
-      <i class="bi bi-calendar3"></i> Events &amp; Calendar
+      <i class="bi bi-calendar3"></i> Events Calendar
     </a>
 
     <div class="sidebar-section">Modules</div>
@@ -51,7 +56,7 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
       <i class="bi bi-award"></i> Scholarships
     </a>
 
-    <?php if ($role === 'moderator' || $role === 'officer'): ?>
+    <?php if ($role === 'moderator'): ?>
     <div class="sidebar-section">Management</div>
     <a href="/members.php" class="sidebar-link<?= $isActive('members') ?>">
       <i class="bi bi-people"></i> Members
@@ -62,6 +67,11 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
     <a href="/profile.php" class="sidebar-link<?= $isActive('profile') ?>">
       <i class="bi bi-person"></i> My Profile
     </a>
+    <?php if (in_array($role, ['member', 'officer'])): ?>
+    <a href="/band-members.php" class="sidebar-link<?= $isActive('band-members') ?>">
+      <i class="bi bi-people"></i> Members
+    </a>
+    <?php endif; ?>
     <a href="/logout.php" class="sidebar-link" data-confirm="Log out?">
       <i class="bi bi-box-arrow-right"></i> Logout
     </a>
@@ -83,7 +93,12 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
       <span class="topbar-title"><?= h($title) ?></span>
     </div>
     <div class="d-flex align-items-center gap-2">
+      <?php if ($hasAvatar): ?>
+      <img src="<?= h($avatarPath) ?>" alt="Avatar"
+           style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0">
+      <?php else: ?>
       <div class="user-avatar"><?= h($initials) ?></div>
+      <?php endif; ?>
       <div class="d-none d-sm-block">
         <div class="fw-semibold" style="font-size:.82rem;color:#344054"><?= h($user['name']) ?></div>
         <div class="text-muted" style="font-size:.74rem"><?= h(ucfirst($role)) ?></div>

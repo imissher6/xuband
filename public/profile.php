@@ -12,12 +12,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update_profile') {
         $name    = trim($_POST['name'] ?? '');
         $instr   = trim($_POST['instrument'] ?? '');
-        $yr      = trim($_POST['year_level'] ?? '');
+        $yr      = ($user['role'] !== 'moderator') ? trim($_POST['year_level'] ?? '') : null;
         $contact = trim($_POST['contact_number'] ?? '');
         $notes   = trim($_POST['profile_notes'] ?? '');
         if (!$name) { flash('error', 'Name is required.'); redirect('/profile.php'); }
-        dbExecute('UPDATE users SET name=?,instrument=?,year_level=?,contact_number=?,profile_notes=? WHERE id=?',
-            [$name,$instr,$yr,$contact,$notes,$user['id']]);
+
+        // Handle avatar upload
+        $avatarPath = null;
+        if (!empty($_FILES['avatar']['name']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+            $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
+            $allowed = ['jpg','jpeg','png','gif','webp'];
+            if (!in_array($ext, $allowed)) {
+                flash('error', 'Avatar must be an image (jpg, png, gif, webp).');
+                redirect('/profile.php');
+            }
+            if ($_FILES['avatar']['size'] > 2 * 1024 * 1024) {
+                flash('error', 'Avatar must be under 2MB.');
+                redirect('/profile.php');
+            }
+            $avatarDir = __DIR__ . '/uploads/avatars/';
+            if (!is_dir($avatarDir)) mkdir($avatarDir, 0755, true);
+            $filename   = 'avatar_' . $user['id'] . '_' . time() . '.' . $ext;
+            $destPath   = $avatarDir . $filename;
+            if (move_uploaded_file($_FILES['avatar']['tmp_name'], $destPath)) {
+                $avatarPath = '/uploads/avatars/' . $filename;
+            }
+        }
+
+        if ($avatarPath) {
+            if ($user['role'] !== 'moderator') {
+                dbExecute('UPDATE users SET name=?,instrument=?,year_level=?,contact_number=?,profile_notes=?,avatar_path=? WHERE id=?',
+                    [$name,$instr,$yr,$contact,$notes,$avatarPath,$user['id']]);
+            } else {
+                dbExecute('UPDATE users SET name=?,instrument=?,contact_number=?,profile_notes=?,avatar_path=? WHERE id=?',
+                    [$name,$instr,$contact,$notes,$avatarPath,$user['id']]);
+            }
+        } else {
+            if ($user['role'] !== 'moderator') {
+                dbExecute('UPDATE users SET name=?,instrument=?,year_level=?,contact_number=?,profile_notes=? WHERE id=?',
+                    [$name,$instr,$yr,$contact,$notes,$user['id']]);
+            } else {
+                dbExecute('UPDATE users SET name=?,instrument=?,contact_number=?,profile_notes=? WHERE id=?',
+                    [$name,$instr,$contact,$notes,$user['id']]);
+            }
+        }
         $_SESSION['user_name'] = $name;
         flash('success', 'Profile updated.');
         redirect('/profile.php');
@@ -54,6 +92,9 @@ $myScholarship = dbQueryOne(
 $myAttendance  = dbQuery('SELECT a.*, e.title AS event_title, e.event_date, e.type FROM attendance a JOIN events e ON e.id = a.event_id WHERE a.user_id = ? ORDER BY e.event_date DESC LIMIT 10', [$user['id']]);
 $myPenalty     = dbQueryOne('SELECT * FROM penalty_summary WHERE user_id = ?', [$user['id']]);
 
+// Officers and members both see attendance/penalty stats
+$showStats = in_array($user['role'], ['member', 'officer']);
+
 layout_head('My Profile', 'profile');
 ?>
 
@@ -76,14 +117,32 @@ layout_head('My Profile', 'profile');
     <div class="card-header">
       <span class="card-title"><i class="bi bi-person me-2"></i>Profile Information</span>
     </div>
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="action" value="update_profile">
       <div class="card-body">
+        <!-- Avatar -->
         <div class="text-center mb-3">
-          <div class="user-avatar mx-auto mb-2" style="width:60px;height:60px;font-size:1.5rem">
+          <?php if (!empty($profile['avatar_path']) && file_exists(__DIR__ . $profile['avatar_path'])): ?>
+          <img src="<?= h($profile['avatar_path']) ?>" alt="Avatar"
+               id="avatarPreview"
+               style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--xu-navy);margin-bottom:.5rem">
+          <?php else: ?>
+          <div class="user-avatar mx-auto mb-2" id="avatarInitials"
+               style="width:72px;height:72px;font-size:1.6rem">
             <?= strtoupper(substr($profile['name'],0,1)) ?>
           </div>
+          <img id="avatarPreview" src="" alt="Avatar"
+               style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--xu-navy);margin-bottom:.5rem">
+          <?php endif; ?>
           <?= roleBadge($profile['role']) ?>
+          <div class="mt-2">
+            <label class="btn btn-sm btn-outline-secondary" for="avatarInput">
+              <i class="bi bi-camera me-1"></i>Change Photo
+            </label>
+            <input id="avatarInput" name="avatar" type="file" accept="image/*" style="display:none"
+              onchange="previewAvatar(this)">
+            <div class="text-muted" style="font-size:.72rem;margin-top:4px">JPG, PNG, WebP &middot; max 2MB</div>
+          </div>
         </div>
         <div class="mb-3">
           <label class="form-label">Full Name *</label>
@@ -98,10 +157,12 @@ layout_head('My Profile', 'profile');
             <label class="form-label">Instrument</label>
             <input name="instrument" class="form-control" value="<?= h($profile['instrument'] ?? '') ?>">
           </div>
+          <?php if ($user['role'] !== 'moderator'): ?>
           <div class="col-6">
             <label class="form-label">Year Level</label>
             <input name="year_level" class="form-control" value="<?= h($profile['year_level'] ?? '') ?>">
           </div>
+          <?php endif; ?>
         </div>
         <div class="mt-3">
           <label class="form-label">Contact Number</label>
@@ -152,11 +213,11 @@ layout_head('My Profile', 'profile');
   </div>
 </div>
 
-<!-- Right: Stats + Attendance -->
+<!-- Right: Stats + Attendance (member & officer) -->
 <div class="col-lg-8">
-  <?php if ($profile['role'] === 'member'): ?>
+  <?php if ($showStats): ?>
 
-  <?php if ($myScholarship): ?>
+  <?php if ($myScholarship && $user['role'] === 'member'): ?>
   <div class="card mb-3">
     <div class="card-header">
       <span class="card-title"><i class="bi bi-award me-2"></i>My Scholarship</span>
@@ -242,9 +303,36 @@ layout_head('My Profile', 'profile');
     </div>
   </div>
 
+  <?php else: ?>
+  <!-- Moderator — no attendance stats, just a welcome card -->
+  <div class="card">
+    <div class="card-body text-center py-5">
+      <div class="empty-icon mb-3"><i class="bi bi-shield-check fs-1" style="color:var(--xu-navy)"></i></div>
+      <h5 style="color:var(--xu-navy)">Moderator Account</h5>
+      <p class="text-muted">Moderators manage the system and do not participate in attendance or scholarship tracking.</p>
+    </div>
+  </div>
   <?php endif; ?>
 </div>
 
 </div>
+
+<script>
+function previewAvatar(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var preview = document.getElementById('avatarPreview');
+      var initials = document.getElementById('avatarInitials');
+      if (preview) {
+        preview.src = e.target.result;
+        preview.style.display = '';
+      }
+      if (initials) initials.style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
 
 <?php layout_foot(); ?>
