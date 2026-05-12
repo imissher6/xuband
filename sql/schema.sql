@@ -21,9 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Migrations: safe to run on existing databases (ignored if column already exists)
-ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_path VARCHAR(255) DEFAULT NULL;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS scholarship_status ENUM('Not Scholar','Half Scholar','Full Scholar') NOT NULL DEFAULT 'Not Scholar';
+-- NOTE: avatar_path and scholarship_status migration handled by setup.php via INFORMATION_SCHEMA check
 
 -- Events
 CREATE TABLE IF NOT EXISTS events (

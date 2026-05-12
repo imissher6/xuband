@@ -62,6 +62,29 @@ foreach ($statements as $stmt) {
 }
 
 $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+
+// ── Column migrations (MySQL-safe: no IF NOT EXISTS on ALTER TABLE) ──────────
+$migrations = [
+    'avatar_path'        => "ALTER TABLE users ADD COLUMN avatar_path VARCHAR(255) DEFAULT NULL",
+    'scholarship_status' => "ALTER TABLE users ADD COLUMN scholarship_status ENUM('Not Scholar','Half Scholar','Full Scholar') NOT NULL DEFAULT 'Not Scholar'",
+];
+foreach ($migrations as $col => $alterSql) {
+    $exists = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = " . $pdo->quote($col)
+    )->fetchColumn();
+    if ($exists) {
+        $log[] = "<span style='color:orange'>Skip:</span> Column `users.{$col}` already exists";
+    } else {
+        try {
+            $pdo->exec($alterSql);
+            $log[] = "<span style='color:green'>OK:</span> Added column `users.{$col}`";
+        } catch (PDOException $e) {
+            $errors[] = $e->getMessage();
+            $log[] = "<span style='color:red'>Error:</span> " . htmlspecialchars($e->getMessage());
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html>
