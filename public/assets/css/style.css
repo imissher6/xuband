@@ -10,7 +10,8 @@
   --xu-border:     #dde1ea;
   --xu-text:       #1a202c;
   --xu-muted:      #64748b;
-  --sidebar-w:     256px;
+  --sidebar-w:          256px;
+  --sidebar-w-collapsed: 64px;
   --topbar-h:      58px;
   --radius-sm:     6px;
   --radius-md:     10px;
@@ -42,10 +43,28 @@ img { max-width: 100%; }
   display: flex;
   flex-direction: column;
   z-index: 1040;
-  transition: transform .25s ease;
+  transition: transform .25s ease, width .25s ease;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 2px 0 12px rgba(0,0,0,.15);
 }
+
+/* ── Collapsed sidebar (desktop rail) ── */
+body.sidebar-collapsed #sidebar { width: var(--sidebar-w-collapsed); }
+body.sidebar-collapsed #main-wrapper { margin-left: var(--sidebar-w-collapsed); }
+body.sidebar-collapsed .sidebar-brand-text,
+body.sidebar-collapsed .sidebar-section,
+body.sidebar-collapsed .sidebar-link span,
+body.sidebar-collapsed .sidebar-link-text,
+body.sidebar-collapsed .sidebar-footer { display: none !important; }
+body.sidebar-collapsed .sidebar-brand { padding: 1rem; justify-content: center; gap: 0; }
+body.sidebar-collapsed .sidebar-logo { width: 36px; height: 36px; margin: 0; }
+body.sidebar-collapsed .sidebar-link { padding: .62rem 0; justify-content: center; gap: 0; border-left: 3px solid transparent; }
+body.sidebar-collapsed .sidebar-link i { width: auto; font-size: 1.05rem; margin: 0; }
+body.sidebar-collapsed .sidebar-link:hover { background: rgba(255,255,255,.09); color: #fff; }
+body.sidebar-collapsed .sidebar-link.active { background: rgba(255,255,255,.12); border-left-color: var(--xu-gold-lt); }
+body.sidebar-collapsed #sidebar { overflow: visible; }
+body.sidebar-collapsed .sidebar-nav { padding: .25rem 0; }
 .sidebar-brand {
   padding: 1.25rem 1.25rem 1.1rem;
   border-bottom: 1px solid rgba(255,255,255,.08);
@@ -120,6 +139,7 @@ img { max-width: 100%; }
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: margin-left .25s ease;
 }
 
 /* ── Topbar ── */
@@ -615,8 +635,8 @@ img { max-width: 100%; }
 @media (max-width: 575.98px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .login-box { padding: 1.75rem 1.25rem; }
-  .cal-event-dot { display: none; }
-  .cal-day-num::after { content: '•'; color: var(--xu-navy); font-size: .5rem; vertical-align: super; display: var(--has-event, none); }
+  .cal-day { min-height: 46px; padding: 3px 4px; }
+  .cal-event-dot { font-size: .55rem; padding: 1px 3px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
 /* ── Misc ── */

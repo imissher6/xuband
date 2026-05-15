@@ -45,12 +45,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('error', 'Invalid penalty data.');
             redirect('/attendance.php');
         }
-        // Get the user_id so we can recompute their summary
         $row = dbQueryOne('SELECT user_id FROM attendance WHERE id = ?', [$attendance_id]);
         if (!$row) { flash('error', 'Attendance record not found.'); redirect('/attendance.php'); }
         dbExecute('UPDATE attendance SET penalty_points = ? WHERE id = ?', [$new_penalty, $attendance_id]);
         recomputePenaltySummary($row['user_id']);
         flash('success', 'Penalty updated.');
+        redirect('/attendance.php');
+    }
+
+    if ($action === 'batch_edit_penalties') {
+        $ids      = $_POST['attendance_id'] ?? [];
+        $penalties = $_POST['new_penalty'] ?? [];
+        $affected  = [];
+        foreach ($ids as $i => $aid) {
+            $aid = (int)$aid;
+            $pen = max(0, (int)($penalties[$i] ?? 0));
+            if ($aid < 1) continue;
+            $row = dbQueryOne('SELECT user_id FROM attendance WHERE id = ?', [$aid]);
+            if (!$row) continue;
+            dbExecute('UPDATE attendance SET penalty_points = ? WHERE id = ?', [$pen, $aid]);
+            $affected[] = $row['user_id'];
+        }
+        foreach (array_unique($affected) as $uid) {
+            recomputePenaltySummary($uid);
+        }
+        flash('success', 'Penalties updated.');
         redirect('/attendance.php');
     }
 }
@@ -420,20 +439,26 @@ layout_head('Attendance', 'attendance');
 
 <!-- Edit Penalty Modal -->
 <div class="xu-modal-overlay" id="xumodalEditPenalty">
-  <div class="xu-modal" style="max-width:480px">
-    <div class="xu-modal-header">
-      <span class="xu-modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Penalty — <span id="penaltyMemberName"></span></span>
-      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
-    </div>
-    <div class="xu-modal-body">
-      <p class="text-muted small mb-3">Select the attendance record to adjust, then enter the corrected penalty points.</p>
-      <div id="penaltyAttendanceList">
-        <!-- Filled dynamically -->
+  <div class="xu-modal" style="max-width:500px">
+    <form method="POST" id="batchPenaltyForm">
+      <input type="hidden" name="action" value="batch_edit_penalties">
+      <div class="xu-modal-header">
+        <span class="xu-modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Penalties — <span id="penaltyMemberName"></span></span>
+        <button type="button" class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
       </div>
-    </div>
-    <div class="xu-modal-footer">
-      <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
-    </div>
+      <div class="xu-modal-body">
+        <p class="text-muted small mb-3">Adjust penalty points per attendance record, then click <strong>Save All</strong>.</p>
+        <div id="penaltyAttendanceList">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+      <div class="xu-modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-1"></i>Save All
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -466,22 +491,17 @@ function openEditPenalty(userId, memberName) {
   if (!rows.length) {
     container.innerHTML = '<p class="text-muted small">No attendance records for this member.</p>';
   } else {
-    container.innerHTML = rows.map(r => `
-      <div class="border rounded p-2 mb-2">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <strong>${escHtml(r.event_title)}</strong>
-            <div class="text-muted small">${escHtml(r.event_date)} &middot; ${ucfirst(r.status)}</div>
-          </div>
-          <form method="POST" class="d-flex align-items-center gap-2 ms-2">
-            <input type="hidden" name="action" value="edit_penalty">
-            <input type="hidden" name="attendance_id" value="${r.attendance_id}">
-            <input type="number" name="new_penalty" class="form-control form-control-sm" style="width:80px"
-                   value="${r.penalty_points}" min="0" step="1" required>
-            <button type="submit" class="btn btn-xs btn-primary">
-              <i class="bi bi-floppy"></i>
-            </button>
-          </form>
+    container.innerHTML = rows.map((r, i) => `
+      <div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-center gap-2">
+        <div>
+          <strong>${escHtml(r.event_title)}</strong>
+          <div class="text-muted small">${escHtml(r.event_date)} &middot; ${ucfirst(r.status)}</div>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+          <input type="hidden" name="attendance_id[]" value="${r.attendance_id}">
+          <input type="number" name="new_penalty[]" class="form-control form-control-sm" style="width:85px"
+                 value="${r.penalty_points}" min="0" step="1" required>
+          <span class="text-muted small">pts</span>
         </div>
       </div>
     `).join('');

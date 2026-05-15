@@ -30,49 +30,53 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
 <!-- Sidebar -->
 <nav id="sidebar">
   <div class="sidebar-brand">
-    <img src="/assets/img/xuband-logo.png" alt="XUBand Logo" style="max-width:120px;max-height:64px;object-fit:contain">
+    <img src="/assets/img/xuband-logo.png" alt="XUBand Logo" class="sidebar-logo">
+    <div class="sidebar-brand-text">
+      <div class="brand-name">Xavier University Band</div>
+      <div class="brand-sub">XU Band</div>
+    </div>
   </div>
   <div class="sidebar-nav">
     <div class="sidebar-section">Main</div>
     <a href="/dashboard.php" class="sidebar-link<?= $isActive('dashboard') ?>">
-      <i class="bi bi-house"></i> Dashboard
+      <i class="bi bi-house"></i><span class="sidebar-link-text"> Dashboard</span>
     </a>
     <a href="/announcements.php" class="sidebar-link<?= $isActive('announcements') ?>">
-      <i class="bi bi-megaphone"></i> Announcements
+      <i class="bi bi-megaphone"></i><span class="sidebar-link-text"> Announcements</span>
     </a>
     <a href="/events.php" class="sidebar-link<?= $isActive('events') ?>">
-      <i class="bi bi-calendar3"></i> Events Calendar
+      <i class="bi bi-calendar3"></i><span class="sidebar-link-text"> Events Calendar</span>
     </a>
 
     <div class="sidebar-section">Modules</div>
     <a href="/music-sheets.php" class="sidebar-link<?= $isActive('music-sheets') ?>">
-      <i class="bi bi-music-note-beamed"></i> Music Sheets
+      <i class="bi bi-music-note-beamed"></i><span class="sidebar-link-text"> Music Sheets</span>
     </a>
     <a href="/attendance.php" class="sidebar-link<?= $isActive('attendance') ?>">
-      <i class="bi bi-check2-square"></i> Attendance
+      <i class="bi bi-check2-square"></i><span class="sidebar-link-text"> Attendance</span>
     </a>
     <a href="/scholarships.php" class="sidebar-link<?= $isActive('scholarships') ?>">
-      <i class="bi bi-award"></i> Scholarships
+      <i class="bi bi-award"></i><span class="sidebar-link-text"> Scholarships</span>
     </a>
 
     <?php if ($role === 'moderator'): ?>
     <div class="sidebar-section">Management</div>
     <a href="/members.php" class="sidebar-link<?= $isActive('members') ?>">
-      <i class="bi bi-people"></i> Members
+      <i class="bi bi-people"></i><span class="sidebar-link-text"> Members</span>
     </a>
     <?php endif; ?>
 
     <div class="sidebar-section">Account</div>
     <a href="/profile.php" class="sidebar-link<?= $isActive('profile') ?>">
-      <i class="bi bi-person"></i> My Profile
+      <i class="bi bi-person"></i><span class="sidebar-link-text"> My Profile</span>
     </a>
     <?php if (in_array($role, ['member', 'officer'])): ?>
     <a href="/band-members.php" class="sidebar-link<?= $isActive('band-members') ?>">
-      <i class="bi bi-people"></i> Members
+      <i class="bi bi-people"></i><span class="sidebar-link-text"> Members</span>
     </a>
     <?php endif; ?>
     <a href="#" class="sidebar-link sidebar-link-logout" onclick="openModal('xumodalLogout'); return false;">
-      <i class="bi bi-box-arrow-right"></i> Logout
+      <i class="bi bi-box-arrow-right"></i><span class="sidebar-link-text"> Logout</span>
     </a>
   </div>
   <div class="sidebar-footer">
@@ -86,7 +90,7 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
 <div id="main-wrapper">
   <div id="topbar">
     <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-sm btn-outline-secondary d-lg-none border-0" id="sidebarToggler">
+      <button class="btn btn-sm btn-outline-secondary border-0" id="sidebarToggler">
         <i class="bi bi-list fs-5"></i>
       </button>
       <span class="topbar-title"><?= h($title) ?></span>
@@ -149,6 +153,58 @@ document.addEventListener('click', function(e) {
     e.target.classList.remove('open'); document.body.style.overflow = '';
   }
 });
+
+// ── Sidebar toggle (mobile slide-in + desktop collapse rail) ──
+(function() {
+  var sidebar   = document.getElementById('sidebar');
+  var backdrop  = document.getElementById('sidebarBackdrop');
+  var toggler   = document.getElementById('sidebarToggler');
+  var isDesktop = function() { return window.innerWidth >= 992; };
+
+  // Restore desktop collapsed state from localStorage
+  if (isDesktop() && localStorage.getItem('sidebarCollapsed') === '1') {
+    document.body.classList.add('sidebar-collapsed');
+  }
+
+  if (toggler) {
+    toggler.addEventListener('click', function() {
+      if (isDesktop()) {
+        // Desktop: toggle icon-only rail
+        var collapsed = document.body.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+      } else {
+        // Mobile: slide-in overlay
+        var open = sidebar.classList.toggle('show');
+        if (backdrop) backdrop.classList.toggle('show', open);
+        document.body.style.overflow = open ? 'hidden' : '';
+      }
+    });
+  }
+
+  if (backdrop) {
+    backdrop.addEventListener('click', function() {
+      sidebar.classList.remove('show');
+      backdrop.classList.remove('show');
+      document.body.style.overflow = '';
+    });
+  }
+
+  // On resize: if going desktop, close mobile overlay; restore saved state
+  window.addEventListener('resize', function() {
+    if (isDesktop()) {
+      sidebar.classList.remove('show');
+      if (backdrop) backdrop.classList.remove('show');
+      document.body.style.overflow = '';
+      if (localStorage.getItem('sidebarCollapsed') === '1') {
+        document.body.classList.add('sidebar-collapsed');
+      } else {
+        document.body.classList.remove('sidebar-collapsed');
+      }
+    } else {
+      document.body.classList.remove('sidebar-collapsed');
+    }
+  });
+})();
 </script>
 </body>
 </html>

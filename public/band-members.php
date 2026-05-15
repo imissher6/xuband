@@ -10,7 +10,8 @@ $user = currentUser();
 // This page is for Band Members & Officers to see the member list (no moderators shown)
 $members = dbQuery(
     'SELECT u.id, u.name, u.role, u.instrument, u.year_level, u.student_id,
-            u.status, u.avatar_path, COALESCE(ps.total_points,0) AS penalty_points
+            u.status, u.avatar_path, u.contact_number,
+            COALESCE(ps.total_points,0) AS penalty_points
      FROM users u
      LEFT JOIN penalty_summary ps ON ps.user_id = u.id
      WHERE u.role != "moderator" AND u.status = "active"
@@ -57,6 +58,9 @@ layout_head('Members', 'band-members');
           <?php endif; ?>
           <?php if ($m['year_level']): ?>
           <div class="text-muted small"><i class="bi bi-mortarboard me-1"></i><?= h($m['year_level']) ?></div>
+          <?php endif; ?>
+          <?php if (!empty($m['contact_number'])): ?>
+          <div class="text-muted small mt-1"><i class="bi bi-telephone me-1"></i><?= h($m['contact_number']) ?></div>
           <?php endif; ?>
         </div>
       </div>
