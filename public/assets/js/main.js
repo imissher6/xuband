@@ -87,4 +87,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  // ── Contact number: numbers only (allow +, -, spaces, parens) ──
+  document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('contact-number-input')) {
+      var v = e.target.value;
+      var cleaned = v.replace(/[^0-9+\-\s()]/g, '');
+      if (v !== cleaned) e.target.value = cleaned;
+    }
+  });
+
+  // Block non-allowed keys on contact number fields
+  document.addEventListener('keypress', function(e) {
+    if (e.target.classList.contains('contact-number-input')) {
+      if (!/[0-9+\-\s()]/.test(e.key)) e.preventDefault();
+    }
+  });
+
 });

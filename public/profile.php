@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name    = trim($_POST['name'] ?? '');
         $instr   = trim($_POST['instrument'] ?? '');
         $yr      = ($user['role'] !== 'moderator') ? trim($_POST['year_level'] ?? '') : null;
-        $contact = trim($_POST['contact_number'] ?? '');
+        $contact = preg_replace('/[^0-9+\-\s()]/', '', trim($_POST['contact_number'] ?? ''));
         $notes   = trim($_POST['profile_notes'] ?? '');
         if (!$name) { flash('error', 'Name is required.'); redirect('/profile.php'); }
 
@@ -207,7 +207,7 @@ layout_head('My Profile', 'profile');
           </div>
           <div class="mt-3">
             <label class="form-label">Contact Number</label>
-            <input name="contact_number" class="form-control" value="<?= h($profile['contact_number'] ?? '') ?>">
+            <input name="contact_number" class="form-control contact-number-input" inputmode="tel" value="<?= h($profile['contact_number'] ?? '') ?>" placeholder="e.g. 09171234567">
           </div>
           <div class="mt-3">
             <label class="form-label">Notes</label>

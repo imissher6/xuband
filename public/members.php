@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $instr      = trim($_POST['instrument'] ?? '');
         $yr         = trim($_POST['year_level'] ?? '');
         $sid        = trim($_POST['student_id'] ?? '');
-        $contact    = trim($_POST['contact_number'] ?? '');
+        $contact    = preg_replace('/[^0-9+\-\s()]/', '', trim($_POST['contact_number'] ?? ''));
         $scholarship= $_POST['scholarship_status'] ?? 'Not Scholar';
         // Prevent creating moderators via this form (safety)
         if ($role === 'moderator') $role = 'member';
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $instr       = trim($_POST['instrument'] ?? '');
         $yr          = trim($_POST['year_level'] ?? '');
         $sid         = trim($_POST['student_id'] ?? '');
-        $contact     = trim($_POST['contact_number'] ?? '');
+        $contact     = preg_replace('/[^0-9+\-\s()]/', '', trim($_POST['contact_number'] ?? ''));
         $status      = $_POST['status'] ?? 'active';
         $scholarship = $_POST['scholarship_status'] ?? 'Not Scholar';
 
@@ -224,7 +224,7 @@ layout_head('Members', 'members');
           </div>
           <div class="col-md-6">
             <label class="form-label">Contact Number</label>
-            <input name="contact_number" class="form-control">
+            <input name="contact_number" class="form-control contact-number-input" inputmode="tel" placeholder="e.g. 09171234567">
           </div>
         </div>
         <div class="mt-3">
@@ -300,7 +300,7 @@ layout_head('Members', 'members');
           </div>
           <div class="col-md-6">
             <label class="form-label">Contact Number</label>
-            <input id="edit_contact_number" name="contact_number" class="form-control">
+            <input id="edit_contact_number" name="contact_number" class="form-control contact-number-input" inputmode="tel" placeholder="e.g. 09171234567">
           </div>
         </div>
         <div class="mt-3">
