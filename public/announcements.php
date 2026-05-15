@@ -88,7 +88,7 @@ layout_head('Announcements', 'announcements');
     </div>
     <?php endif; ?>
   </div>
-  <div class="card-body p-3">
+  <div class="card-body p-3" style="display:flex;flex-direction:column;gap:0">
     <?php if (!$announcements): ?>
     <div class="empty-state"><div class="empty-icon"><i class="bi bi-inbox"></i></div><p>No announcements yet.</p></div>
     <?php else: ?>
@@ -99,9 +99,8 @@ layout_head('Announcements', 'announcements');
         $expired = $ann['expires_at'] && strtotime($ann['expires_at']) < strtotime('today');
         $annJson = htmlspecialchars(json_encode($ann), ENT_QUOTES);
       ?>
-      <div class="announcement-card <?= $ann['pinned'] ? 'pinned' : '' ?>"
+      <div class="ann-card <?= $ann['pinned'] ? 'pinned' : '' ?>"
            <?= $expired ? 'style="opacity:.55"' : '' ?>
-           style="cursor:pointer"
            onclick="viewAnn(<?= $annJson ?>)"
            role="button" tabindex="0">
         <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2" onclick="event.stopPropagation()">
@@ -291,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   <?php endif; ?>
   // Keyboard accessibility for announcement cards
-  document.querySelectorAll('.announcement-card[role=button]').forEach(function(card) {
+  document.querySelectorAll('.ann-card[role=button]').forEach(function(card) {
     card.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
     });

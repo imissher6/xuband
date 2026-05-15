@@ -91,20 +91,21 @@ layout_head('Events Calendar', 'events');
 <div class="col-lg-8">
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center gap-2">
-        <a href="?month=<?= $prevMonth ?>&year=<?= $prevYear ?>" class="btn btn-outline-secondary btn-sm">
+      <!-- Centered cal nav: prev / month-year / next -->
+      <div class="d-flex align-items-center gap-2 mx-auto" style="position:relative;width:100%">
+        <a href="?month=<?= $prevMonth ?>&year=<?= $prevYear ?>" class="btn btn-outline-secondary btn-sm flex-shrink-0">
           <i class="bi bi-chevron-left"></i>
         </a>
-        <span class="card-title"><?= $monthName ?></span>
-        <a href="?month=<?= $nextMonth ?>&year=<?= $nextYear ?>" class="btn btn-outline-secondary btn-sm">
+        <span class="card-title text-center flex-grow-1"><?= $monthName ?></span>
+        <a href="?month=<?= $nextMonth ?>&year=<?= $nextYear ?>" class="btn btn-outline-secondary btn-sm flex-shrink-0">
           <i class="bi bi-chevron-right"></i>
         </a>
+        <?php if (isOfficer()): ?>
+        <button class="btn btn-primary btn-sm flex-shrink-0 ms-2" onclick="openModal('xumodalEvent'); resetEventForm()">
+          <i class="bi bi-plus-lg me-1"></i> Add Event
+        </button>
+        <?php endif; ?>
       </div>
-      <?php if (isOfficer()): ?>
-      <button class="btn btn-primary btn-sm" onclick="openModal('xumodalEvent'); resetEventForm()">
-        <i class="bi bi-plus-lg me-1"></i> Add Event
-      </button>
-      <?php endif; ?>
     </div>
     <div class="card-body">
       <div class="calendar-grid">

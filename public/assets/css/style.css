@@ -364,12 +364,24 @@ img { max-width: 100%; }
   border-radius: var(--radius-md);
   padding: 1rem 1.1rem;
   background: var(--xu-white);
-  margin-bottom: .75rem;
-  transition: box-shadow .16s, transform .16s;
+  margin-bottom: .65rem;
+  transition: box-shadow .16s, transform .16s, border-color .16s;
   cursor: pointer;
+  box-shadow: 0 1px 4px rgba(30,58,110,.04);
 }
-.ann-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
-.ann-card.pinned { border-left-color: var(--xu-gold); background: #fffdf7; }
+.ann-card:last-child { margin-bottom: 0; }
+.ann-card:hover {
+  box-shadow: 0 4px 16px rgba(30,58,110,.10);
+  transform: translateY(-1px);
+  border-color: #b3c3dc;
+  border-left-color: var(--xu-navy-light);
+}
+.ann-card.pinned {
+  border-left-color: var(--xu-gold);
+  background: #fffdf7;
+  border-color: #e8dfc0;
+}
+.ann-card.pinned:hover { border-left-color: var(--xu-gold-lt); }
 
 /* ── Event card ── */
 .event-row {
@@ -396,7 +408,7 @@ img { max-width: 100%; }
 .event-date-badge .day   { font-size: 1.3rem; font-weight: 800; line-height: 1; }
 
 /* ── Calendar ── */
-.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+.cal-grid, .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
 .cal-day-header {
   text-align: center; font-size: .68rem; font-weight: 700;
   color: var(--xu-muted); padding: 6px 0;

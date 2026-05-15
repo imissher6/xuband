@@ -114,10 +114,13 @@ layout_head('My Profile', 'profile');
 <!-- Left: Profile Info + Password -->
 <div class="col-lg-4">
   <div class="card mb-3">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
       <span class="card-title"><i class="bi bi-person me-2"></i>Profile Information</span>
+      <button type="button" class="btn btn-sm btn-outline" id="editProfileBtn" onclick="enableProfileEdit()">
+        <i class="bi bi-pencil me-1"></i>Edit Profile
+      </button>
     </div>
-    <form method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data" id="profileForm">
       <input type="hidden" name="action" value="update_profile">
       <div class="card-body">
         <!-- Avatar -->
@@ -125,17 +128,17 @@ layout_head('My Profile', 'profile');
           <?php if (!empty($profile['avatar_path']) && file_exists(__DIR__ . $profile['avatar_path'])): ?>
           <img src="<?= h($profile['avatar_path']) ?>" alt="Avatar"
                id="avatarPreview"
-               style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--xu-navy);margin-bottom:.5rem">
+               style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--xu-navy);margin-bottom:.5rem">
           <?php else: ?>
           <div class="user-avatar mx-auto mb-2" id="avatarInitials"
-               style="width:72px;height:72px;font-size:1.6rem">
+               style="width:80px;height:80px;font-size:1.8rem">
             <?= strtoupper(substr($profile['name'],0,1)) ?>
           </div>
           <img id="avatarPreview" src="" alt="Avatar"
-               style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--xu-navy);margin-bottom:.5rem">
+               style="display:none;width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--xu-navy);margin-bottom:.5rem">
           <?php endif; ?>
           <?= roleBadge($profile['role']) ?>
-          <div class="mt-2">
+          <div class="mt-2" id="avatarUploadWrap" style="display:none">
             <label class="btn btn-sm btn-outline-secondary" for="avatarInput">
               <i class="bi bi-camera me-1"></i>Change Photo
             </label>
@@ -144,39 +147,81 @@ layout_head('My Profile', 'profile');
             <div class="text-muted" style="font-size:.72rem;margin-top:4px">JPG, PNG, WebP &middot; max 2MB</div>
           </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Full Name *</label>
-          <input name="name" class="form-control" value="<?= h($profile['name']) ?>" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Email</label>
-          <input class="form-control" value="<?= h($profile['email']) ?>" disabled>
-        </div>
-        <div class="row g-3">
-          <div class="col-6">
-            <label class="form-label">Instrument</label>
-            <input name="instrument" class="form-control" value="<?= h($profile['instrument'] ?? '') ?>">
+
+        <!-- Read-only view -->
+        <div id="profileReadOnly">
+          <div class="mb-3">
+            <div class="text-muted small mb-1">Full Name</div>
+            <div class="fw-semibold"><?= h($profile['name']) ?></div>
           </div>
-          <?php if ($user['role'] !== 'moderator'): ?>
-          <div class="col-6">
-            <label class="form-label">Year Level</label>
-            <input name="year_level" class="form-control" value="<?= h($profile['year_level'] ?? '') ?>">
+          <div class="mb-3">
+            <div class="text-muted small mb-1">Email</div>
+            <div><?= h($profile['email']) ?></div>
           </div>
-          <?php endif; ?>
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <div class="text-muted small mb-1">Instrument</div>
+              <div><?= h($profile['instrument'] ?? '—') ?></div>
+            </div>
+            <?php if ($user['role'] !== 'moderator'): ?>
+            <div class="col-6">
+              <div class="text-muted small mb-1">Year Level</div>
+              <div><?= h($profile['year_level'] ?? '—') ?></div>
+            </div>
+            <?php endif; ?>
+          </div>
+          <div class="mb-3">
+            <div class="text-muted small mb-1">Contact Number</div>
+            <div><?= h($profile['contact_number'] ?? '—') ?></div>
+          </div>
+          <div class="mb-2">
+            <div class="text-muted small mb-1">Notes</div>
+            <div style="white-space:pre-line"><?= h($profile['profile_notes'] ?? '—') ?></div>
+          </div>
+          <div class="text-muted small mt-2 pt-2 border-top">
+            Student ID: <?= h($profile['student_id'] ?: '—') ?> &middot; Joined <?= formatDate($profile['created_at']) ?>
+          </div>
         </div>
-        <div class="mt-3">
-          <label class="form-label">Contact Number</label>
-          <input name="contact_number" class="form-control" value="<?= h($profile['contact_number'] ?? '') ?>">
-        </div>
-        <div class="mt-3">
-          <label class="form-label">Notes</label>
-          <textarea name="profile_notes" class="form-control"><?= h($profile['profile_notes'] ?? '') ?></textarea>
-        </div>
-        <div class="text-muted small mt-2">
-          Student ID: <?= h($profile['student_id'] ?: '—') ?> &middot; Joined <?= formatDate($profile['created_at']) ?>
+
+        <!-- Editable fields (hidden by default) -->
+        <div id="profileEditFields" style="display:none">
+          <div class="mb-3">
+            <label class="form-label">Full Name *</label>
+            <input name="name" class="form-control" value="<?= h($profile['name']) ?>" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input class="form-control" value="<?= h($profile['email']) ?>" disabled>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">Instrument</label>
+              <input name="instrument" class="form-control" value="<?= h($profile['instrument'] ?? '') ?>">
+            </div>
+            <?php if ($user['role'] !== 'moderator'): ?>
+            <div class="col-6">
+              <label class="form-label">Year Level</label>
+              <input name="year_level" class="form-control" value="<?= h($profile['year_level'] ?? '') ?>">
+            </div>
+            <?php endif; ?>
+          </div>
+          <div class="mt-3">
+            <label class="form-label">Contact Number</label>
+            <input name="contact_number" class="form-control" value="<?= h($profile['contact_number'] ?? '') ?>">
+          </div>
+          <div class="mt-3">
+            <label class="form-label">Notes</label>
+            <textarea name="profile_notes" class="form-control" rows="3"><?= h($profile['profile_notes'] ?? '') ?></textarea>
+          </div>
+          <div class="text-muted small mt-2 pt-2 border-top">
+            Student ID: <?= h($profile['student_id'] ?: '—') ?> &middot; Joined <?= formatDate($profile['created_at']) ?>
+          </div>
         </div>
       </div>
-      <div class="card-footer">
+      <div class="card-footer" id="profileSaveBtns" style="display:none">
+        <button type="button" class="btn btn-outline me-2" onclick="cancelProfileEdit()">
+          <i class="bi bi-x-lg me-1"></i>Cancel
+        </button>
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-floppy me-1"></i>Save Changes
         </button>
@@ -318,16 +363,27 @@ layout_head('My Profile', 'profile');
 </div>
 
 <script>
+function enableProfileEdit() {
+  document.getElementById('profileReadOnly').style.display    = 'none';
+  document.getElementById('profileEditFields').style.display  = '';
+  document.getElementById('profileSaveBtns').style.display    = '';
+  document.getElementById('avatarUploadWrap').style.display   = '';
+  document.getElementById('editProfileBtn').style.display     = 'none';
+}
+function cancelProfileEdit() {
+  document.getElementById('profileReadOnly').style.display    = '';
+  document.getElementById('profileEditFields').style.display  = 'none';
+  document.getElementById('profileSaveBtns').style.display    = 'none';
+  document.getElementById('avatarUploadWrap').style.display   = 'none';
+  document.getElementById('editProfileBtn').style.display     = '';
+}
 function previewAvatar(input) {
   if (input.files && input.files[0]) {
     var reader = new FileReader();
     reader.onload = function(e) {
       var preview = document.getElementById('avatarPreview');
       var initials = document.getElementById('avatarInitials');
-      if (preview) {
-        preview.src = e.target.result;
-        preview.style.display = '';
-      }
+      if (preview) { preview.src = e.target.result; preview.style.display = ''; }
       if (initials) initials.style.display = 'none';
     };
     reader.readAsDataURL(input.files[0]);

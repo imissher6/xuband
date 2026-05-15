@@ -36,8 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-logo">
       <img src="/assets/img/xuband-logo.png" alt="XUBand Logo"
            style="max-width:140px;max-height:80px;object-fit:contain;margin-bottom:1rem">
-      <h1>XUBand Filing System</h1>
-      <p>Xavier University Band — Digital Platform</p>
+      <h1 style="font-size:1.5rem;font-weight:900;letter-spacing:.5px">LOGIN</h1>
     </div>
 
     <?php if ($error): ?>
