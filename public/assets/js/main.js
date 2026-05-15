@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
   });
 
-  // ── Confirm on data-confirm (works for submit buttons inside forms) ──
+  // ── data-confirm (for non-logout delete actions) ──
   document.querySelectorAll('[data-confirm]').forEach(el => {
     el.addEventListener('click', function (e) {
       if (!confirm(this.dataset.confirm)) {
@@ -78,10 +78,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ── ESC to close modals ──
+  // ── ESC to close modals (fixed: targets .xu-modal-overlay not .modal-overlay) ──
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
-      document.querySelectorAll('.modal-overlay.open').forEach(overlay => {
+      document.querySelectorAll('.xu-modal-overlay.open').forEach(overlay => {
         overlay.classList.remove('open'); document.body.style.overflow = '';
       });
     }

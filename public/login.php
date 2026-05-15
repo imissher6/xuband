@@ -34,7 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="login-page">
   <div class="login-box">
     <div class="login-logo">
-      <div class="logo-mark"><i class="bi bi-music-note-beamed"></i></div>
+      <img src="/assets/img/xuband-logo.png" alt="XUBand Logo"
+           style="max-width:140px;max-height:80px;object-fit:contain;margin-bottom:1rem">
       <h1>XUBand Filing System</h1>
       <p>Xavier University Band — Digital Platform</p>
     </div>
@@ -61,14 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
       </button>
     </form>
-
-    <div class="mt-4 p-3 rounded" style="background:var(--bg);font-size:.78rem;color:var(--text-muted)">
-      <strong style="color:var(--navy)">Demo Accounts</strong><br><br>
-      <strong>Moderator:</strong> moderator@xuband.edu.ph<br>
-      <strong>Officer:</strong> gabutin@xuband.edu.ph<br>
-      <strong>Member:</strong> macalaguing@xuband.edu.ph<br>
-      <br><em>All passwords: <code>password</code></em>
-    </div>
   </div>
 </div>
 <script src="/assets/js/bootstrap.bundle.min.js"></script>

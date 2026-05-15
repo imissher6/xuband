@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Exclude moderators from the listing (shown only in management context)
+// Exclude moderators from the listing
 $members = dbQuery('SELECT u.*, COALESCE(ps.total_points,0) AS penalty_points
     FROM users u
     LEFT JOIN penalty_summary ps ON ps.user_id = u.id
@@ -112,17 +112,25 @@ layout_head('Members', 'members');
     </button>
   </div>
   <div class="card-body py-3 px-3">
-    <div class="input-group" style="max-width:320px">
-      <span class="input-group-text"><i class="bi bi-search"></i></span>
-      <input id="tableSearch" type="search" class="form-control" placeholder="Search members…">
+    <div class="search-bar-wrap">
+      <span class="search-icon"><i class="bi bi-search"></i></span>
+      <input id="tableSearch" type="search" class="form-control search-input" placeholder="Search by name, email, instrument…">
     </div>
   </div>
-  <div class="table-wrap" data-searchable>
+  <div class="table-wrap table-responsive" data-searchable>
     <table>
       <thead>
         <tr>
-          <th>Name</th><th>Email</th><th>Role</th><th>Instrument</th>
-          <th>Year</th><th>Student ID</th><th>Status</th><th>Scholarship</th><th>Penalty Pts</th><th>Actions</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Instrument</th>
+          <th>Year</th>
+          <th>Student ID</th>
+          <th>Contact</th>
+          <th>Scholarship</th>
+          <th>Penalty</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -134,10 +142,10 @@ layout_head('Members', 'members');
           <td><?= h($m['instrument'] ?: '—') ?></td>
           <td><?= h($m['year_level'] ?: '—') ?></td>
           <td class="small"><?= h($m['student_id'] ?: '—') ?></td>
-          <td><?= statusBadge($m['status']) ?></td>
+          <td class="small"><?= h($m['contact_number'] ?: '—') ?></td>
           <td><?= scholarshipBadge($m['scholarship_status'] ?? 'Not Scholar') ?></td>
           <td class="<?= penaltyColor((float)$m['penalty_points']) ?> fw-bold"><?= $m['penalty_points'] ?></td>
-          <td>
+          <td style="white-space:nowrap">
             <button class="btn btn-xs btn-outline-secondary" onclick="openModal('xumodalEdit'); fillEdit(<?= htmlspecialchars(json_encode($m), ENT_QUOTES) ?>)">
               <i class="bi bi-pencil"></i> Edit
             </button>
@@ -215,7 +223,7 @@ layout_head('Members', 'members');
             <input name="student_id" class="form-control">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Contact</label>
+            <label class="form-label">Contact Number</label>
             <input name="contact_number" class="form-control">
           </div>
         </div>
@@ -268,7 +276,7 @@ layout_head('Members', 'members');
             </select>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Status</label>
+            <label class="form-label">Account Status</label>
             <select id="edit_status" name="status" class="form-control">
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -291,7 +299,7 @@ layout_head('Members', 'members');
             <input id="edit_student_id" name="student_id" class="form-control">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Contact</label>
+            <label class="form-label">Contact Number</label>
             <input id="edit_contact_number" name="contact_number" class="form-control">
           </div>
         </div>
@@ -321,17 +329,6 @@ function fillEdit(m) {
     if (el) el.value = m[k] || (k === 'scholarship_status' ? 'Not Scholar' : '');
   });
 }
-// Live search
-document.addEventListener('DOMContentLoaded', function() {
-  const inp = document.getElementById('tableSearch');
-  if (!inp) return;
-  inp.addEventListener('input', function() {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('[data-searchable] tbody tr').forEach(row => {
-      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
-    });
-  });
-});
 </script>
 
 <?php layout_foot(); ?>

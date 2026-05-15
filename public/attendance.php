@@ -37,6 +37,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash('success', 'Attendance saved. Penalties updated.');
         redirect('/attendance.php?event_id=' . $event_id);
     }
+
+    if ($action === 'edit_penalty') {
+        $attendance_id = (int)($_POST['attendance_id'] ?? 0);
+        $new_penalty   = (int)($_POST['new_penalty'] ?? 0);
+        if ($attendance_id < 1 || $new_penalty < 0) {
+            flash('error', 'Invalid penalty data.');
+            redirect('/attendance.php');
+        }
+        // Get the user_id so we can recompute their summary
+        $row = dbQueryOne('SELECT user_id FROM attendance WHERE id = ?', [$attendance_id]);
+        if (!$row) { flash('error', 'Attendance record not found.'); redirect('/attendance.php'); }
+        dbExecute('UPDATE attendance SET penalty_points = ? WHERE id = ?', [$new_penalty, $attendance_id]);
+        recomputePenaltySummary($row['user_id']);
+        flash('success', 'Penalty updated.');
+        redirect('/attendance.php');
+    }
 }
 
 $selectedEvent = (int)($_GET['event_id'] ?? 0);
@@ -84,6 +100,15 @@ if (isOfficer()) {
          LEFT JOIN penalty_summary ps ON ps.user_id=u.id
          WHERE u.role="member" AND u.status="active"
          ORDER BY ps.total_points DESC, u.name'
+    );
+    // Also fetch individual attendance rows for penalty editing
+    $allAttendanceRows = dbQuery(
+        'SELECT a.id AS attendance_id, a.user_id, a.event_id, a.status, a.penalty_points,
+                u.name, e.title AS event_title, e.event_date
+         FROM attendance a
+         JOIN users u ON u.id = a.user_id
+         JOIN events e ON e.id = a.event_id
+         ORDER BY e.event_date DESC, u.name'
     );
 }
 
@@ -359,7 +384,7 @@ layout_head('Attendance', 'attendance');
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Member</th><th>Instrument</th><th>Present</th><th>Late</th><th>Absent</th><th>Total Penalty</th></tr>
+        <tr><th>Member</th><th>Instrument</th><th>Present</th><th>Late</th><th>Absent</th><th>Total Penalty</th><th>Actions</th></tr>
       </thead>
       <tbody>
         <?php foreach ($penaltySummary as $p): ?>
@@ -377,13 +402,38 @@ layout_head('Attendance', 'attendance');
               <?= $p['total_points'] ?>
             </span>
           </td>
+          <td>
+            <button class="btn btn-xs btn-outline-secondary"
+                    onclick="openEditPenalty(<?= $p['id'] ?>, <?= h(json_encode($p['name'])) ?>)">
+              <i class="bi bi-pencil me-1"></i>Edit Penalty
+            </button>
+          </td>
         </tr>
         <?php endforeach; ?>
         <?php if (!$penaltySummary): ?>
-        <tr><td colspan="6"><div class="empty-state p-3"><p>No data yet.</p></div></td></tr>
+        <tr><td colspan="7"><div class="empty-state p-3"><p>No data yet.</p></div></td></tr>
         <?php endif; ?>
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- Edit Penalty Modal -->
+<div class="xu-modal-overlay" id="xumodalEditPenalty">
+  <div class="xu-modal" style="max-width:480px">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Penalty — <span id="penaltyMemberName"></span></span>
+      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="xu-modal-body">
+      <p class="text-muted small mb-3">Select the attendance record to adjust, then enter the corrected penalty points.</p>
+      <div id="penaltyAttendanceList">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+    <div class="xu-modal-footer">
+      <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -404,6 +454,48 @@ function setAllStatus(status) {
     sel.value = status;
     updatePts(parseInt(sel.getAttribute('data-uid')));
   });
+}
+
+// All attendance rows indexed by user_id
+const allAttRows = <?= isset($allAttendanceRows) ? json_encode($allAttendanceRows) : '[]' ?>;
+
+function openEditPenalty(userId, memberName) {
+  document.getElementById('penaltyMemberName').textContent = memberName;
+  const rows = allAttRows.filter(r => parseInt(r.user_id) === parseInt(userId));
+  const container = document.getElementById('penaltyAttendanceList');
+  if (!rows.length) {
+    container.innerHTML = '<p class="text-muted small">No attendance records for this member.</p>';
+  } else {
+    container.innerHTML = rows.map(r => `
+      <div class="border rounded p-2 mb-2">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <strong>${escHtml(r.event_title)}</strong>
+            <div class="text-muted small">${escHtml(r.event_date)} &middot; ${ucfirst(r.status)}</div>
+          </div>
+          <form method="POST" class="d-flex align-items-center gap-2 ms-2">
+            <input type="hidden" name="action" value="edit_penalty">
+            <input type="hidden" name="attendance_id" value="${r.attendance_id}">
+            <input type="number" name="new_penalty" class="form-control form-control-sm" style="width:80px"
+                   value="${r.penalty_points}" min="0" step="1" required>
+            <button type="submit" class="btn btn-xs btn-primary">
+              <i class="bi bi-floppy"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    `).join('');
+  }
+  openModal('xumodalEditPenalty');
+}
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(String(str)));
+  return d.innerHTML;
+}
+function ucfirst(str) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
 }
 </script>
 

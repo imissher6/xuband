@@ -11,7 +11,8 @@ $totalMembers    = dbQueryOne('SELECT COUNT(*) AS n FROM users WHERE role = "mem
 $totalOfficers   = dbQueryOne('SELECT COUNT(*) AS n FROM users WHERE role IN ("officer","moderator")')['n'] ?? 0;
 $totalSheets     = dbQueryOne('SELECT COUNT(*) AS n FROM music_sheets')['n'] ?? 0;
 $upcomingEvents  = dbQueryOne('SELECT COUNT(*) AS n FROM events WHERE event_date >= CURDATE()')['n'] ?? 0;
-$activeScholar   = dbQueryOne('SELECT COUNT(*) AS n FROM scholarships WHERE status = "active"')['n'] ?? 0;
+// Fix: status values are Full Scholar / Half Scholar / Not Scholar — count non-"Not Scholar"
+$activeScholar   = dbQueryOne('SELECT COUNT(*) AS n FROM scholarships WHERE status != "Not Scholar"')['n'] ?? 0;
 $announcements   = dbQuery('SELECT a.*, u.name AS author FROM announcements a JOIN users u ON u.id = a.created_by ORDER BY a.pinned DESC, a.created_at DESC LIMIT 5');
 $nextEvents      = dbQuery('SELECT e.*, u.name AS organizer FROM events e JOIN users u ON u.id = e.created_by WHERE e.event_date >= CURDATE() ORDER BY e.event_date ASC LIMIT 5');
 
@@ -38,46 +39,46 @@ layout_head('Dashboard', 'dashboard');
 <!-- Stats -->
 <div class="stats-grid">
   <?php if (isOfficer()): ?>
-  <div class="stat-card">
+  <a href="/members.php" class="stat-card stat-card-link" style="text-decoration:none">
     <div class="stat-icon"><i class="bi bi-people"></i></div>
     <div><div class="stat-value"><?= $totalMembers ?></div><div class="stat-label">Band Members</div></div>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="/music-sheets.php" class="stat-card stat-card-link" style="text-decoration:none">
     <div class="stat-icon"><i class="bi bi-music-note-beamed"></i></div>
     <div><div class="stat-value"><?= $totalSheets ?></div><div class="stat-label">Music Sheets</div></div>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="/scholarships.php" class="stat-card stat-card-link" style="text-decoration:none">
     <div class="stat-icon gold"><i class="bi bi-award"></i></div>
     <div><div class="stat-value"><?= $activeScholar ?></div><div class="stat-label">Active Scholars</div></div>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="/events.php" class="stat-card stat-card-link" style="text-decoration:none">
     <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
     <div><div class="stat-value"><?= $upcomingEvents ?></div><div class="stat-label">Upcoming Events</div></div>
-  </div>
+  </a>
   <?php else: ?>
-  <div class="stat-card">
+  <a href="/attendance.php" class="stat-card stat-card-link" style="text-decoration:none">
     <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
     <div><div class="stat-value"><?= $myStats['presents'] ?? 0 ?></div><div class="stat-label">Times Present</div></div>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="/attendance.php" class="stat-card stat-card-link" style="text-decoration:none">
     <div class="stat-icon"><i class="bi bi-x-circle"></i></div>
     <div><div class="stat-value"><?= $myStats['absents'] ?? 0 ?></div><div class="stat-label">Absences</div></div>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="/attendance.php" class="stat-card stat-card-link" style="text-decoration:none">
     <div class="stat-icon gold"><i class="bi bi-exclamation-triangle"></i></div>
     <div>
       <div class="stat-value <?= penaltyColor((float)($myStats['total_points'] ?? 0)) ?>"><?= $myStats['total_points'] ?? 0 ?></div>
       <div class="stat-label">Penalty Points</div>
     </div>
-  </div>
+  </a>
   <?php if (isset($myScholarship)): ?>
-  <div class="stat-card">
+  <a href="/scholarships.php" class="stat-card stat-card-link" style="text-decoration:none">
     <div class="stat-icon"><i class="bi bi-award"></i></div>
     <div>
       <div class="stat-value" style="font-size:1.1rem"><?= ucfirst($myScholarship['status'] ?? '—') ?></div>
       <div class="stat-label">Scholarship Status</div>
     </div>
-  </div>
+  </a>
   <?php endif; ?>
   <?php endif; ?>
 </div>
@@ -95,14 +96,14 @@ layout_head('Dashboard', 'dashboard');
         <?php if (!$announcements): ?>
         <div class="empty-state"><div class="empty-icon"><i class="bi bi-inbox"></i></div><p>No announcements yet.</p></div>
         <?php else: foreach ($announcements as $ann): ?>
-        <div class="px-3 py-3 border-bottom">
+        <a href="/announcements.php" class="text-decoration-none d-block px-3 py-3 border-bottom dashboard-row-link">
           <div class="d-flex align-items-center gap-2 mb-1">
             <?php if ($ann['pinned']): ?><span class="badge text-bg-warning" style="font-size:.65rem">PINNED</span><?php endif; ?>
             <span class="text-muted" style="font-size:.75rem"><?= formatDate($ann['created_at']) ?></span>
           </div>
           <div class="fw-bold" style="color:var(--navy)"><?= h($ann['title']) ?></div>
           <div class="text-muted small mt-1"><?= h(mb_substr($ann['body'], 0, 100)) ?>…</div>
-        </div>
+        </a>
         <?php endforeach; endif; ?>
       </div>
     </div>
@@ -119,7 +120,7 @@ layout_head('Dashboard', 'dashboard');
         <?php if (!$nextEvents): ?>
         <div class="empty-state"><div class="empty-icon"><i class="bi bi-calendar-x"></i></div><p>No upcoming events.</p></div>
         <?php else: foreach ($nextEvents as $ev): ?>
-        <div class="px-3 py-3 border-bottom d-flex gap-3 align-items-start">
+        <a href="/events.php" class="text-decoration-none d-block px-3 py-3 border-bottom dashboard-row-link d-flex gap-3 align-items-start">
           <div class="text-center flex-shrink-0" style="min-width:44px;background:var(--navy);color:#fff;border-radius:8px;padding:6px 4px">
             <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;opacity:.7"><?= (new DateTime($ev['event_date']))->format('M') ?></div>
             <div style="font-size:1.2rem;font-weight:800;line-height:1"><?= (new DateTime($ev['event_date']))->format('d') ?></div>
@@ -129,7 +130,7 @@ layout_head('Dashboard', 'dashboard');
             <div class="text-muted small"><?= h($ev['location'] ?? '') ?><?= $ev['event_time'] ? ' · ' . date('h:i A', strtotime($ev['event_time'])) : '' ?></div>
             <span class="badge badge-member mt-1"><?= h(ucfirst($ev['type'])) ?></span>
           </div>
-        </div>
+        </a>
         <?php endforeach; endif; ?>
       </div>
     </div>

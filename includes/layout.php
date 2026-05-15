@@ -30,8 +30,7 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
 <!-- Sidebar -->
 <nav id="sidebar">
   <div class="sidebar-brand">
-    <div class="brand-name"><i class="bi bi-music-note-beamed me-2"></i>XUBand</div>
-    <div class="brand-sub">Digital Filing System</div>
+    <img src="/assets/img/xuband-logo.png" alt="XUBand Logo" style="max-width:120px;max-height:64px;object-fit:contain">
   </div>
   <div class="sidebar-nav">
     <div class="sidebar-section">Main</div>
@@ -72,7 +71,7 @@ function layout_head(string $title = 'XUBand', string $pageKey = ''): void {
       <i class="bi bi-people"></i> Members
     </a>
     <?php endif; ?>
-    <a href="/logout.php" class="sidebar-link" data-confirm="Log out?">
+    <a href="#" class="sidebar-link sidebar-link-logout" onclick="openModal('xumodalLogout'); return false;">
       <i class="bi bi-box-arrow-right"></i> Logout
     </a>
   </div>
@@ -113,6 +112,26 @@ function layout_foot(): void {
 ?>
   </div><!-- /page-body -->
 </div><!-- /main-wrapper -->
+
+<!-- Logout Confirmation Modal -->
+<div class="xu-modal-overlay" id="xumodalLogout">
+  <div class="xu-modal" style="max-width:400px">
+    <div class="xu-modal-header">
+      <span class="xu-modal-title"><i class="bi bi-box-arrow-right me-2"></i>Log Out</span>
+      <button class="xu-modal-close" onclick="closeModal(this)"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="xu-modal-body">
+      <p class="mb-0" style="color:var(--text-muted)">Are you sure you want to log out?</p>
+    </div>
+    <div class="xu-modal-footer">
+      <button type="button" class="btn btn-outline" onclick="closeModal(this)">Cancel</button>
+      <a href="/logout.php" class="btn btn-danger">
+        <i class="bi bi-box-arrow-right me-1"></i>Log Out
+      </a>
+    </div>
+  </div>
+</div>
+
 <script src="/assets/js/bootstrap.bundle.min.js"></script>
 <script src="/assets/js/main.js"></script>
 <script>
