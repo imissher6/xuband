@@ -71,11 +71,11 @@ CREATE TABLE IF NOT EXISTS school_years (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Scholarship Terms (auto-created: 1st Sem, 2nd Sem, Summer per school year)
+-- Scholarship Terms (auto-created: 1st Sem, 2nd Sem, Intersession per school year)
 CREATE TABLE IF NOT EXISTS scholarship_terms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     school_year_id INT NOT NULL,
-    term ENUM('1st Semester','2nd Semester','Summer') NOT NULL,
+    term ENUM('1st Semester','2nd Semester','Intersession') NOT NULL,
     UNIQUE KEY unique_term (school_year_id, term),
     FOREIGN KEY (school_year_id) REFERENCES school_years(id) ON DELETE CASCADE
 );
@@ -173,7 +173,7 @@ INSERT INTO announcements (title, body, created_by, pinned) VALUES
 
 -- Sample school year with all 3 terms
 INSERT INTO school_years (label, created_by) VALUES ('2024-2025', 1);
-INSERT INTO scholarship_terms (school_year_id, term) VALUES (1,'1st Semester'),(1,'2nd Semester'),(1,'Summer');
+INSERT INTO scholarship_terms (school_year_id, term) VALUES (1,'1st Semester'),(1,'2nd Semester'),(1,'Intersession');
 
 -- Sample scholarships
 INSERT INTO scholarships (term_id, user_id, status, updated_by) VALUES

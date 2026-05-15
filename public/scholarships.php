@@ -80,7 +80,7 @@ $schoolYears = dbQuery('SELECT sy.*, u.name AS creator FROM school_years sy JOIN
 $yearsData = [];
 foreach ($schoolYears as $sy) {
     $terms = dbQuery(
-        'SELECT * FROM scholarship_terms WHERE school_year_id=? ORDER BY FIELD(term,"1st Semester","2nd Semester","Intersession","Summer")',
+        'SELECT * FROM scholarship_terms WHERE school_year_id=? ORDER BY FIELD(term,"1st Semester","2nd Semester","Intersession")',
         [$sy['id']]
     );
     $termsData = [];
